@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="hr_expense_view_form_fund" model="ir.ui.view">
+        <field name="name">hr.expense.view.form.fund</field>
+        <field name="model">hr.expense</field>
+        <field name="inherit_id" ref="hr_expense.hr_expense_view_form"/>
+        <field name="arch" type="xml">
+            <!-- En las rendiciones el proveedor va siempre, no solo si paga la empresa. -->
+            <field name="vendor_id" position="attributes">
+                <attribute name="invisible">advance</attribute>
+                <attribute name="context">{'res_partner_search_mode': 'supplier'}</attribute>
+            </field>
+            <!-- advance ya está en el formulario (hr_expense_advance_clearing). -->
+            <field name="vendor_id" position="after">
+                <field name="vendor_vat" invisible="advance or not vendor_id"/>
+                <field name="receipt_number" invisible="advance"/>
+            </field>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="tier_definition_view_form_fund_expense" model="ir.ui.view">
+        <field name="name">tier.definition.form.fund.expense</field>
+        <field name="model">tier.definition</field>
+        <field name="inherit_id" ref="base_tier_validation.tier_definition_view_form"/>
+        <field name="arch" type="xml">
+            <field name="review_type" position="after">
+                <field name="fund_expense_signature" invisible="model != 'hr.expense.sheet'"/>
+            </field>
+        </field>
+    </record>
+</odoo>

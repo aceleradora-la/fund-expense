@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_expense_sheet_form_fund" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.form.fund</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="hr_expense.view_hr_expense_sheet_form"/>
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="department_manager_user_id" widget="many2one_avatar_user"/>
+                <field name="fund_journal_id"
+                       groups="fund_expense_report.group_fund_expense_afm"
+                       options="{'no_create': True}"/>
+                <field name="fund_source" invisible="not fund_source"/>
+            </field>
+            <xpath expr="//field[@name='expense_line_ids']/list/field[@name='name']" position="after">
+                <field name="receipt_number" optional="show"/>
+                <field name="vendor_id" optional="show"/>
+                <field name="vendor_vat" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_hr_expense_sheet_search_fund" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.search.fund</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="hr_expense.hr_expense_sheet_view_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter string="Fondo fijo" name="fund_fondo_fijo"
+                        domain="[('fund_source', '=', 'fondo_fijo')]"/>
+                <filter string="Caja chica" name="fund_caja_chica"
+                        domain="[('fund_source', '=', 'caja_chica')]"/>
+                <filter string="Sin fondo asignado" name="fund_none"
+                        domain="[('fund_journal_id', '=', False)]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

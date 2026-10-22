@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Firma 3 del Anexo I. Elige el fondo de pago y ve todas las
+         rendiciones (Gastos / Administrador). -->
+    <record id="group_fund_expense_afm" model="res.groups">
+        <field name="name">Gerencia de Administración y Finanzas</field>
+        <field name="category_id" ref="base.module_category_human_resources_expenses"/>
+        <field name="implied_ids" eval="[Command.link(ref('hr_expense.group_hr_expense_manager'))]"/>
+    </record>
+
+    <!--
+        Quien tiene que aprobar una rendición (cualquier nivel) la ve y puede
+        aprobarla aunque no sea aprobador de Gastos: aprobar escribe en la hoja
+        (seguidores). Las reglas de grupo se suman (OR) a las del núcleo.
+    -->
+    <record id="rule_hr_expense_sheet_reviewer" model="ir.rule">
+        <field name="name">Rendiciones: visibles para sus aprobadores</field>
+        <field name="model_id" ref="hr_expense.model_hr_expense_sheet"/>
+        <field name="groups" eval="[Command.link(ref('base.group_user'))]"/>
+        <field name="domain_force">['|', ('department_manager_user_id', '=', user.id), ('review_ids.reviewer_ids', 'in', [user.id])]</field>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_hr_expense_reviewer" model="ir.rule">
+        <field name="name">Gastos de rendiciones: visibles para sus aprobadores</field>
+        <field name="model_id" ref="hr_expense.model_hr_expense"/>
+        <field name="groups" eval="[Command.link(ref('base.group_user'))]"/>
+        <field name="domain_force">['|', ('sheet_id.department_manager_user_id', '=', user.id), ('sheet_id.review_ids.reviewer_ids', 'in', [user.id])]</field>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+</odoo>
