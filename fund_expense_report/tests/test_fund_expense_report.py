@@ -41,6 +41,18 @@ class TestFundExpenseReport(TransactionCase):
             raise unittest.SkipTest(
                 "La compañía no tiene diario de banco, de efectivo o cuenta de gastos"
             )
+        # Diario de gastos de empleados sin documentos fiscales (localización
+        # argentina): el reintegro no es una factura; los comprobantes van en
+        # cada renglón.
+        journal_vals = {
+            "name": "Rendiciones de gastos (test)",
+            "code": "TRGT",
+            "type": "purchase",
+            "company_id": company.id,
+        }
+        if "l10n_latam_use_documents" in Journal._fields:
+            journal_vals["l10n_latam_use_documents"] = False
+        cls.expense_journal = Journal.create(journal_vals)
         cls.product = cls.env["product.product"].create(
             {
                 "name": "Gasto de prueba (rendición)",
@@ -164,6 +176,7 @@ class TestFundExpenseReport(TransactionCase):
                 "name": "Rendición de prueba",
                 "employee_id": employee.id,
                 "company_id": self.company.id,
+                "employee_journal_id": self.expense_journal.id,
                 "expense_line_ids": [Command.create(line)],
             }
         )

@@ -43,6 +43,10 @@ aprobación por niveles (`hr_expense_tier_validation`) y anticipos
    primero la definición de **mayor** secuencia (`request_validation` las recorre en orden
    descendente y numera las revisiones 1, 2, ...).
 3. **Departamentos:** cada área con su **responsable**, y ese empleado con su usuario.
+4. **Diario de gastos de empleados** (*Ajustes → Gastos*): un diario de compras propio (p. ej.
+   "Rendiciones de gastos") **sin "Usa documentos"**. Con la localización argentina, un diario de
+   compras con documentos exige tipo y número de comprobante fiscal al contabilizar la hoja, y el
+   reintegro al empleado no es una factura: los comprobantes de terceros van en cada renglón.
 
 ## Límites
 
