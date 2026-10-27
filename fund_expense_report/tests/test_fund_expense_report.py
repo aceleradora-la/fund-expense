@@ -1,36 +1,90 @@
 # Copyright 2026 aceleradora.la
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from odoo import Command
-from odoo.exceptions import AccessError, UserError
-from odoo.tests import tagged
+import unittest
 
-from odoo.addons.hr_expense.tests.common import TestExpenseCommon
-from odoo.addons.mail.tests.common import mail_new_test_user
+from odoo import Command, fields
+from odoo.exceptions import AccessError, UserError
+from odoo.tests import new_test_user, tagged
+from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestFundExpenseReport(TestExpenseCommon):
+class TestFundExpenseReport(TransactionCase):
+    """Sobre la compañía principal y su plan de cuentas.
+
+    No usa TestExpenseCommon: crea una compañía nueva y, en bases donde
+    crear contactos está restringido, su usuario no puede hacerlo.
+    """
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        company = cls.company_data["company"]
+        cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
+        company = cls.company = cls.env.company
+        Journal = cls.env["account.journal"]
+        company_domain = Journal._check_company_domain(company)
+        cls.bank_journal = Journal.search(
+            [*company_domain, ("type", "=", "bank")], limit=1
+        )
+        cls.cash_journal = Journal.search(
+            [*company_domain, ("type", "=", "cash")], limit=1
+        )
+        expense_account = cls.env["account.account"].search(
+            [
+                *cls.env["account.account"]._check_company_domain(company),
+                ("account_type", "=", "expense"),
+            ],
+            limit=1,
+        )
+        if not (cls.bank_journal and cls.cash_journal and expense_account):
+            raise unittest.SkipTest(
+                "La compañía no tiene diario de banco, de efectivo o cuenta de gastos"
+            )
+        cls.product = cls.env["product.product"].create(
+            {
+                "name": "Gasto de prueba (rendición)",
+                "can_be_expensed": True,
+                "standard_price": 0.0,
+                "property_account_expense_id": expense_account.id,
+                "supplier_taxes_id": [Command.clear()],
+            }
+        )
+
         cls.afm_group = cls.env.ref("fund_expense_report.group_fund_expense_afm")
-        cls.manager_user = mail_new_test_user(
+        user_vals = {
+            "company_id": company.id,
+            "company_ids": [Command.set(company.ids)],
+        }
+        cls.employee_user = new_test_user(
             cls.env,
-            name="Responsable del área",
+            login="fund_expense_employee",
+            groups="base.group_user",
+            **user_vals,
+        )
+        cls.manager_user = new_test_user(
+            cls.env,
             login="fund_expense_area_manager",
             groups="base.group_user",
-            company_ids=[Command.set(cls.env.companies.ids)],
+            **user_vals,
         )
-        cls.afm_user = mail_new_test_user(
+        cls.afm_user = new_test_user(
             cls.env,
-            name="Gerencia AyF",
             login="fund_expense_afm",
+            name="Gerencia AyF",
             groups="base.group_user,fund_expense_report.group_fund_expense_afm",
-            company_ids=[Command.set(cls.env.companies.ids)],
+            **user_vals,
         )
-        cls.manager_employee = cls.env["hr.employee"].create(
+        Employee = cls.env["hr.employee"]
+        cls.expense_employee = Employee.create(
+            {
+                "name": "Empleado que rinde",
+                "user_id": cls.employee_user.id,
+                "work_contact_id": cls.employee_user.partner_id.id,
+                "company_id": company.id,
+            }
+        )
+        cls.manager_employee = Employee.create(
             {
                 "name": "Responsable del área",
                 "user_id": cls.manager_user.id,
@@ -88,24 +142,29 @@ class TestFundExpenseReport(TestExpenseCommon):
                 "company_id": company.id,
             }
         )
-        cls.bank_journal = cls.company_data["default_journal_bank"]
-        cls.cash_journal = cls.company_data["default_journal_cash"]
 
     def _sheet(self, employee=None, vendor=True):
         employee = employee or self.expense_employee
         line = {
+            "name": "Comprobante de prueba",
             "employee_id": employee.id,
-            "product_id": self.product_c.id,
+            "product_id": self.product.id,
             "total_amount_currency": 1000.00,
-            "date": self.frozen_today,
-            "company_id": self.company_data["company"].id,
-            "currency_id": self.company_data["currency"].id,
+            "tax_ids": [Command.clear()],
+            "date": fields.Date.today(),
+            "company_id": self.company.id,
+            "currency_id": self.company.currency_id.id,
             "receipt_number": "0001-00001234",
         }
         if vendor:
             line["vendor_id"] = self.vendor.id
-        return self.create_expense_report(
-            {"employee_id": employee.id, "expense_line_ids": [Command.create(line)]}
+        return self.env["hr.expense.sheet"].create(
+            {
+                "name": "Rendición de prueba",
+                "employee_id": employee.id,
+                "company_id": self.company.id,
+                "expense_line_ids": [Command.create(line)],
+            }
         )
 
     def _submit(self, sheet):
@@ -154,7 +213,7 @@ class TestFundExpenseReport(TestExpenseCommon):
         sheet = self._sheet()
         self._submit(sheet)
         with self.assertRaises(AccessError):
-            sheet.with_user(self.expense_user_employee).fund_journal_id = (
+            sheet.with_user(self.employee_user).fund_journal_id = (
                 self.bank_journal
             )
         # Gerencia AyF lo elige mientras la hoja está en aprobación.
