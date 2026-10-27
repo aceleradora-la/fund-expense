@@ -112,6 +112,7 @@ class TestFundExpenseReport(TransactionCase):
         cls.vendor = cls.env["res.partner"].create(vendor_vals)
 
         # Solo las definiciones del test: las de la base no tienen que influir.
+        # En base_tier_validation firma primero la de mayor secuencia.
         TierDefinition = cls.env["tier.definition"]
         TierDefinition.search([("model", "=", "hr.expense.sheet")]).active = False
         sheet_model = cls.env["ir.model"]._get("hr.expense.sheet")
@@ -124,7 +125,7 @@ class TestFundExpenseReport(TransactionCase):
                 ._get("hr.expense.sheet", "department_manager_user_id")
                 .id,
                 "definition_domain": "[('department_manager_user_id', '!=', False)]",
-                "sequence": 10,
+                "sequence": 20,
                 "approve_sequence": True,
                 "fund_expense_signature": "area",
                 "company_id": company.id,
@@ -136,7 +137,7 @@ class TestFundExpenseReport(TransactionCase):
                 "model_id": sheet_model.id,
                 "review_type": "group",
                 "reviewer_group_id": cls.afm_group.id,
-                "sequence": 20,
+                "sequence": 10,
                 "approve_sequence": True,
                 "fund_expense_signature": "afm",
                 "company_id": company.id,
@@ -187,13 +188,22 @@ class TestFundExpenseReport(TransactionCase):
         self._submit(sheet)
         self.assertEqual(sheet.approval_state, "submit")
         self.assertEqual(len(sheet.review_ids), 2)
-        area = sheet.review_ids.filtered(lambda r: r.sequence == 10)
+        signatures = sheet.review_ids.mapped("definition_id.fund_expense_signature")
+        self.assertEqual(sorted(signatures), ["afm", "area"])
+        area = sheet.review_ids.filtered(
+            lambda r: r.definition_id.fund_expense_signature == "area"
+        )
         self.assertEqual(area.reviewer_ids, self.manager_user)
+        # Firma primero el responsable del área.
+        self.assertTrue(sheet.with_user(self.manager_user).can_review)
+        self.assertFalse(sheet.with_user(self.afm_user).can_review)
 
     def test_requester_is_area_manager(self):
         sheet = self._sheet(employee=self.manager_employee)
         self._submit(sheet)
-        self.assertEqual(sheet.review_ids.mapped("sequence"), [20])
+        self.assertEqual(
+            sheet.review_ids.mapped("definition_id.fund_expense_signature"), ["afm"]
+        )
 
     def test_full_approval_creates_moves(self):
         sheet = self._sheet()
@@ -204,6 +214,8 @@ class TestFundExpenseReport(TransactionCase):
         sheet.with_user(self.afm_user).validate_tier()
         self.assertEqual(sheet.approval_state, "approve")
         self.assertTrue(sheet.account_move_ids)
+        # No se duplicaron las aprobaciones al aprobar la hoja.
+        self.assertEqual(len(sheet.review_ids), 2)
         self.assertEqual(
             sheet._fund_expense_signature("area").done_by, self.manager_user
         )

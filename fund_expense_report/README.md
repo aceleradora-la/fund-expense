@@ -36,10 +36,12 @@ aprobación por niveles (`hr_expense_tier_validation`) y anticipos
 
    | Nivel | Validado por | Dominio | Secuencia | Firma en el Anexo I |
    |---|---|---|---|---|
-   | Responsable del área | Campo → **Responsable del área** | `[("department_manager_user_id", "!=", False)]` | 10 | 2. Responsable del área |
-   | Gerencia AyF | Grupo → **Gerencia de Administración y Finanzas** | `[]` | 20 | 3. Gerencia Adm. y Fin. |
+   | Responsable del área | Campo → **Responsable del área** | `[("department_manager_user_id", "!=", False)]` | **20** | 2. Responsable del área |
+   | Gerencia AyF | Grupo → **Gerencia de Administración y Finanzas** | `[]` | **10** | 3. Gerencia Adm. y Fin. |
 
-   Las dos con *Aprobar en secuencia*.
+   Las dos con *Aprobar en secuencia*. **Ojo con el orden:** en `base_tier_validation` 18 firma
+   primero la definición de **mayor** secuencia (`request_validation` las recorre en orden
+   descendente y numera las revisiones 1, 2, ...).
 3. **Departamentos:** cada área con su **responsable**, y ese empleado con su usuario.
 
 ## Límites

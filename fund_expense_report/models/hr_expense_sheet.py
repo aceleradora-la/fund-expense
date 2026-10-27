@@ -88,6 +88,10 @@ class HrExpenseSheet(models.Model):
         # Al enviar se piden las aprobaciones, sin el paso manual de
         # "Solicitar validación".
         self.filtered("need_validation").request_validation()
+        # need_validation no declara dependencias en base_tier_validation: sin
+        # esto queda en caché como True y, al aprobar la hoja en la misma
+        # transacción, OCA vuelve a pedir las aprobaciones (duplicadas).
+        self.invalidate_recordset(["need_validation"])
         return res
 
     def _fund_expense_check_receipts(self):
@@ -122,6 +126,9 @@ class HrExpenseSheet(models.Model):
         if not to_approve:
             return
         to_approve = to_approve.sudo()
+        # Mismo motivo que en _do_submit: que el control de OCA al escribir
+        # approval_state recalcule need_validation.
+        to_approve.invalidate_recordset(["need_validation"])
         to_approve._check_can_approve()
         to_approve._validate_analytic_distribution()
         to_approve._do_approve()
