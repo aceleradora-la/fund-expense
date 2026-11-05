@@ -15,6 +15,25 @@
             <button name="action_refuse_expense_sheets" position="attributes">
                 <attribute name="invisible">state not in ('submit', 'approve') or (state == 'submit' and validation_status not in ('no', False))</attribute>
             </button>
+            <!-- Si paga la empresa la hoja no tiene asientos: se trabaja sobre las facturas. -->
+            <button name="action_sheet_move_post" position="attributes">
+                <attribute name="invisible">state != 'approve' or payment_mode == 'company_account'</attribute>
+            </button>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_open_fund_bills"
+                        class="oe_stat_button"
+                        icon="fa-file-text-o"
+                        type="object"
+                        invisible="fund_bill_count == 0"
+                        groups="account.group_account_invoice,account.group_account_readonly">
+                    <field name="fund_bill_count" widget="statinfo" string="Facturas"/>
+                </button>
+            </xpath>
+            <!-- El medio de pago se elige al pagar la factura. -->
+            <field name="payment_method_line_id" position="attributes">
+                <attribute name="invisible">1</attribute>
+                <attribute name="required">0</attribute>
+            </field>
             <field name="user_id" position="attributes">
                 <attribute name="invisible">1</attribute>
             </field>
@@ -25,10 +44,23 @@
                        options="{'no_create': True}"/>
                 <field name="fund_source" invisible="not fund_source"/>
             </field>
+            <field name="expense_line_ids" position="attributes">
+                <!-- Mismo contexto que hr_expense_advance_clearing, con el pagador por defecto. -->
+                <attribute name="context">{
+                    'default_advance': advance,
+                    'search_default_is_advance': advance,
+                    'search_default_is_expense': not advance,
+                    'form_view_ref' : 'hr_expense.hr_expense_view_form_without_header',
+                    'default_company_id': company_id,
+                    'default_employee_id': employee_id,
+                    'default_payment_mode': payment_mode or ('own_account' if advance else 'company_account'),
+                }</attribute>
+            </field>
             <xpath expr="//field[@name='expense_line_ids']/list/field[@name='name']" position="after">
                 <field name="receipt_number" optional="show"/>
                 <field name="vendor_id" optional="show"/>
                 <field name="vendor_vat" optional="hide"/>
+                <field name="payment_mode" optional="show"/>
             </xpath>
         </field>
     </record>
@@ -44,6 +76,8 @@
                         domain="[('fund_source', '=', 'fondo_fijo')]"/>
                 <filter string="Caja chica" name="fund_caja_chica"
                         domain="[('fund_source', '=', 'caja_chica')]"/>
+                <filter string="Tarjeta de crédito" name="fund_tarjeta"
+                        domain="[('fund_source', '=', 'tarjeta')]"/>
                 <filter string="Sin fondo asignado" name="fund_none"
                         domain="[('fund_journal_id', '=', False)]"/>
             </xpath>

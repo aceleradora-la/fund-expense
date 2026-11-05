@@ -120,14 +120,17 @@
 
                 <table class="table table-sm table-bordered">
                     <tr>
-                        <th colspan="2">FONDOS (Uso exclusivo Administración)</th>
+                        <th colspan="3">FONDOS (Uso exclusivo Administración)</th>
                     </tr>
                     <tr>
-                        <td style="width: 50%;">
+                        <td style="width: 33%;">
                             FONDO FIJO: <strong t-out="'[X]' if o.fund_source == 'fondo_fijo' else '[ ]'"/>
                         </td>
-                        <td>
+                        <td style="width: 33%;">
                             CAJA CHICA: <strong t-out="'[X]' if o.fund_source == 'caja_chica' else '[ ]'"/>
+                        </td>
+                        <td>
+                            TARJETA DE CRÉDITO: <strong t-out="'[X]' if o.fund_source == 'tarjeta' else '[ ]'"/>
                         </td>
                     </tr>
                 </table>

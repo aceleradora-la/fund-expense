@@ -20,9 +20,19 @@ aprobación por niveles (`hr_expense_tier_validation`) y anticipos
 - **Al rechazar un nivel** se pide siempre el motivo y la hoja pasa a **Rechazado**, con el motivo
   en el historial. Se conservan las firmas hechas, las aprobaciones que faltaban quedan canceladas
   y el empleado la pasa a borrador para corregirla y reenviarla (ahí se piden las firmas de nuevo).
-- **Fondo de pago** (`fund_journal_id`): diario de banco (**fondo fijo**, transferencia) o de
-  efectivo (**caja chica**). Solo lo elige el grupo *Gerencia de Administración y Finanzas*,
-  también durante la aprobación. Se propone al registrar el pago.
+- **Pagado por la empresa** es el caso por defecto. Al aprobarse el último nivel, en lugar de los
+  pagos del núcleo se precarga **un borrador de factura por proveedor**, con renglones, cuentas,
+  analítica y adjuntos, vinculado al Anexo:
+  - Administración completa el comprobante, confirma (entra al Libro IVA) y paga por el circuito
+    habitual. La hoja pasa sola a *Contabilizado* y a *Pagado*.
+  - **Si la factura llega después**, el botón *Pagar sin factura* del borrador abre el pago al
+    proveedor. Al confirmar la factura, ese pago se concilia solo.
+  - Rechazar o volver a borrador la hoja borra los borradores. Si hay una factura confirmada o un
+    pago hecho, primero hay que anularlos.
+- **Pagado por el empleado** queda para reintegros y anticipos, como en el núcleo.
+- **Fondo de pago** (`fund_journal_id`): diario de banco (**fondo fijo**, transferencia), de
+  efectivo (**caja chica**) o de **tarjeta de crédito**. Solo lo elige el grupo *Gerencia de
+  Administración y Finanzas*, también durante la aprobación. Se propone al registrar el pago.
 - **Comprobante** en cada gasto: número, proveedor (siempre visible) y CUIT.
 - **Aprobadores:** quien tiene que aprobar una rendición la ve y la aprueba aunque no tenga
   permisos de Gastos.
@@ -53,9 +63,18 @@ aprobación por niveles (`hr_expense_tier_validation`) y anticipos
    "Rendiciones de gastos") **sin "Usa documentos"**. Con la localización argentina, un diario de
    compras con documentos exige tipo y número de comprobante fiscal al contabilizar la hoja, y el
    reintegro al empleado no es una factura: los comprobantes de terceros van en cada renglón.
+5. **Facturas de proveedor:** un diario de compras con documentos, distinto del anterior. Las
+   facturas del Anexo van a ese diario.
+6. **Tarjeta de crédito:** para que el Anexo tilde *Tarjeta*, el diario tiene que ser de tipo
+   *Tarjeta de crédito*. Un diario de tipo banco se muestra como *Fondo fijo*.
+7. **Con la aprobación de pago de facturas** (`account_move_payment_tier_validation`): sumar
+   `("fund_expense_sheet_id", "=", False)` al dominio de su definición, para que las facturas de
+   un Anexo no pidan una segunda aprobación.
 
 ## Límites
 
 - El control de proveedor con CUIT aplica a todas las hojas de gastos de la compañía.
-- Aprobar el último nivel crea los asientos: si falta configuración contable (diario, cuentas),
-  el error aparece al aprobar.
+- Aprobar el último nivel crea los asientos o las facturas: si falta configuración contable
+  (diario, cuentas), el error aparece al aprobar.
+- Pagar antes de la factura se concilia solo si el pago tiene asiento. Si la factura está
+  bloqueada por otra aprobación, se concilia a mano desde sus créditos pendientes.

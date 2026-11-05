@@ -124,6 +124,9 @@ class TestFundExpenseReport(TransactionCase):
         if cuit_type:
             vendor_vals["l10n_latam_identification_type_id"] = cuit_type.id
         cls.vendor = cls.env["res.partner"].create(vendor_vals)
+        cls.other_vendor = cls.env["res.partner"].create(
+            dict(vendor_vals, name="Otro proveedor", vat="30712345698")
+        )
 
         # Solo las definiciones del test: las de la base no tienen que influir.
         # En base_tier_validation firma primero la de mayor secuencia.
@@ -158,8 +161,7 @@ class TestFundExpenseReport(TransactionCase):
             }
         )
 
-    def _sheet(self, employee=None, vendor=True):
-        employee = employee or self.expense_employee
+    def _line_vals(self, employee, vendor, payment_mode):
         line = {
             "name": "Comprobante de prueba",
             "employee_id": employee.id,
@@ -170,9 +172,16 @@ class TestFundExpenseReport(TransactionCase):
             "company_id": self.company.id,
             "currency_id": self.company.currency_id.id,
             "receipt_number": "0001-00001234",
+            "payment_mode": payment_mode,
         }
         if vendor:
-            line["vendor_id"] = self.vendor.id
+            line["vendor_id"] = vendor.id
+        return line
+
+    def _sheet(self, employee=None, vendor=True, payment_mode="own_account"):
+        employee = employee or self.expense_employee
+        vendor = self.vendor if vendor is True else vendor
+        line = self._line_vals(employee, vendor, payment_mode)
         return self.env["hr.expense.sheet"].create(
             {
                 "name": "Rendición de prueba",
@@ -185,6 +194,26 @@ class TestFundExpenseReport(TransactionCase):
 
     def _submit(self, sheet):
         sheet.with_user(sheet.employee_id.user_id).action_submit_sheet()
+
+    def _approved_company_sheet(self, fund_journal=None):
+        sheet = self._sheet(payment_mode="company_account")
+        self._submit(sheet)
+        if fund_journal:
+            sheet.fund_journal_id = fund_journal
+        sheet.with_user(self.manager_user).validate_tier()
+        sheet.with_user(self.afm_user).validate_tier()
+        return sheet
+
+    def _post_bill(self, bill):
+        # Sin documentos fiscales: el test no depende de la condición de IVA
+        # del proveedor ni del tipo de comprobante.
+        bill.write(
+            {
+                "journal_id": self.expense_journal.id,
+                "invoice_date": fields.Date.today(),
+            }
+        )
+        bill.action_post()
 
     def _reject(self, sheet, user, reason="Falta un comprobante"):
         action = sheet.with_user(user).reject_tier()
@@ -321,6 +350,121 @@ class TestFundExpenseReport(TransactionCase):
         self.assertEqual(
             form.xpath("//field[@name='user_id']")[0].get("invisible"), "1"
         )
+
+    def test_paid_by_company_by_default(self):
+        Expense = self.env["hr.expense"]
+        self.assertEqual(Expense._default_payment_mode(), "company_account")
+        # El anticipo es siempre al empleado (hr_expense_advance_clearing).
+        self.assertEqual(
+            Expense.with_context(default_advance=True)._default_payment_mode(),
+            "own_account",
+        )
+
+    def test_company_sheet_precharges_one_bill_per_vendor(self):
+        sheet = self._sheet(payment_mode="company_account")
+        Expense = self.env["hr.expense"]
+        sheet.expense_line_ids |= Expense.create(
+            [
+                self._line_vals(self.expense_employee, vendor, "company_account")
+                for vendor in (self.vendor, self.other_vendor)
+            ]
+        )
+        self._submit(sheet)
+        sheet.with_user(self.manager_user).validate_tier()
+        # El último firmante no tiene permisos contables.
+        sheet.with_user(self.afm_user).validate_tier()
+        self.assertEqual(sheet.state, "approve")
+        self.assertFalse(sheet.account_move_ids)
+        bills = sheet.fund_bill_ids
+        self.assertEqual(bills.partner_id, self.vendor | self.other_vendor)
+        self.assertEqual(set(bills.mapped("state")), {"draft"})
+        self.assertEqual(set(bills.mapped("move_type")), {"in_invoice"})
+        self.assertEqual(bills.mapped("invoice_origin"), [sheet.name] * 2)
+        by_vendor = bills.filtered(lambda bill: bill.partner_id == self.vendor)
+        self.assertEqual(by_vendor.amount_total, 2000.00)
+        self.assertEqual(by_vendor.invoice_line_ids.product_id, self.product)
+        self.assertNotEqual(bills.journal_id, sheet.employee_journal_id)
+        # Volver a contabilizar no duplica las facturas.
+        sheet.action_sheet_move_post()
+        self.assertEqual(sheet.fund_bill_ids, bills)
+
+    def test_own_account_sheet_keeps_employee_bill(self):
+        sheet = self._sheet()
+        self._submit(sheet)
+        sheet.with_user(self.manager_user).validate_tier()
+        sheet.with_user(self.afm_user).validate_tier()
+        self.assertTrue(sheet.account_move_ids)
+        self.assertFalse(sheet.fund_bill_ids)
+
+    def test_sheet_follows_bill(self):
+        sheet = self._approved_company_sheet(fund_journal=self.cash_journal)
+        bill = sheet.fund_bill_ids
+        self._post_bill(bill)
+        self.assertEqual(sheet.state, "post")
+        action = bill.action_register_payment()
+        self.assertEqual(action["context"]["default_journal_id"], self.cash_journal.id)
+        with self.assertRaises(UserError):
+            sheet.action_reset_expense_sheets()
+
+    def test_pay_without_bill_then_bill_arrives(self):
+        sheet = self._approved_company_sheet(fund_journal=self.bank_journal)
+        bill = sheet.fund_bill_ids
+        action = bill.action_fund_expense_pay_without_bill()
+        payment = self.env["account.payment"].with_context(action["context"]).create({})
+        self.assertEqual(payment.fund_expense_bill_id, bill)
+        self.assertEqual(payment.journal_id, self.bank_journal)
+        self.assertEqual(payment.partner_id, self.vendor)
+        self.assertEqual(payment.amount, 1000.00)
+        manual = payment.journal_id.outbound_payment_method_line_ids.filtered(
+            lambda method: method.code == "manual"
+        )
+        if manual:
+            payment.payment_method_line_id = manual[:1]
+        payment.action_post()
+        # Con un pago hecho, la hoja ya no se puede volver atrás.
+        with self.assertRaises(UserError):
+            sheet.action_reset_expense_sheets()
+        self.assertEqual(bill.state, "draft")
+        self._post_bill(bill)
+        self.assertIn(bill.payment_state, ("paid", "in_payment"))
+        self.assertEqual(sheet.state, "done")
+        self.assertEqual(sheet.expense_line_ids.state, "done")
+
+    def test_refuse_approved_sheet_removes_draft_bills(self):
+        sheet = self._approved_company_sheet()
+        self.assertTrue(sheet.fund_bill_ids)
+        sheet._do_refuse("Ya no hace falta")
+        self.assertFalse(sheet.fund_bill_ids)
+        self.assertEqual(sheet.approval_state, "cancel")
+
+    def test_reset_approved_sheet_removes_draft_bills(self):
+        sheet = self._approved_company_sheet()
+        sheet.action_reset_expense_sheets()
+        self.assertFalse(sheet.fund_bill_ids)
+        self.assertEqual(sheet.state, "draft")
+
+    def test_card_journal(self):
+        card = self.env["account.journal"].create(
+            {
+                "name": "Tarjeta (test)",
+                "code": "TTAR",
+                "type": "credit",
+                "company_id": self.company.id,
+            }
+        )
+        sheet = self._sheet()
+        sheet.with_user(self.afm_user).fund_journal_id = card
+        self.assertEqual(sheet.fund_source, "tarjeta")
+
+    def test_form_hides_payment_method(self):
+        view = self.env.ref("hr_expense.view_hr_expense_sheet_form")
+        form = etree.fromstring(
+            self.env["hr.expense.sheet"].get_view(view.id, "form")["arch"]
+        )
+        method = form.xpath("//field[@name='payment_method_line_id']")[0]
+        self.assertEqual(method.get("invisible"), "1")
+        post = form.xpath("//button[@name='action_sheet_move_post']")[0]
+        self.assertIn("company_account", post.get("invisible"))
 
     def test_fund_journal_only_afm(self):
         sheet = self._sheet()
