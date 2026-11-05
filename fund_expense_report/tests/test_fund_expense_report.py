@@ -248,6 +248,17 @@ class TestFundExpenseReport(TransactionCase):
         )
         self.assertEqual(sheet._fund_expense_signature("afm").done_by, self.afm_user)
 
+    def test_employee_changes_department_under_validation(self):
+        sheet = self._sheet()
+        self._submit(sheet)
+        department = self.env["hr.department"].create(
+            {"name": "Otra área", "company_id": self.company.id}
+        )
+        self.expense_employee.department_id = department
+        sheet.flush_recordset()
+        self.assertEqual(sheet.department_id, department)
+        self.assertEqual(len(sheet.review_ids), 2)
+
     def test_submit_without_standard_activity(self):
         sheet = self._sheet()
         self._submit(sheet)

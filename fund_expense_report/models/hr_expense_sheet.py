@@ -72,12 +72,14 @@ class HrExpenseSheet(models.Model):
     @api.model
     def _get_validation_exceptions(self, extra_domain=None, add_base_exceptions=True):
         # Administración elige el fondo durante la aprobación o después, sin
-        # reiniciar la validación.
+        # reiniciar la validación. department_id lo escribe el núcleo al
+        # recalcular el Manager (_compute_from_employee_id), también con la
+        # hoja en aprobación: si estuviera bloqueado fallaría ese cálculo.
         res = super()._get_validation_exceptions(
             extra_domain=extra_domain, add_base_exceptions=add_base_exceptions
         )
         if add_base_exceptions:
-            res = list(set(res) | {"fund_journal_id", "fund_source"})
+            res = list(set(res) | {"department_id", "fund_journal_id", "fund_source"})
         return res
 
     # Envío: comprobantes y pedido de aprobación
