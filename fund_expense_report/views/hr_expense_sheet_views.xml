@@ -5,6 +5,19 @@
         <field name="model">hr.expense.sheet</field>
         <field name="inherit_id" ref="hr_expense.view_hr_expense_sheet_form"/>
         <field name="arch" type="xml">
+            <field name="can_approve" position="after">
+                <field name="validation_status" invisible="1"/>
+            </field>
+            <!-- Con aprobación por niveles se aprueba y se rechaza solo desde los niveles. -->
+            <button name="action_approve_expense_sheets" position="attributes">
+                <attribute name="invisible">not can_approve or state != 'submit' or validation_status not in ('no', False)</attribute>
+            </button>
+            <button name="action_refuse_expense_sheets" position="attributes">
+                <attribute name="invisible">state not in ('submit', 'approve') or (state == 'submit' and validation_status not in ('no', False))</attribute>
+            </button>
+            <field name="user_id" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </field>
             <field name="user_id" position="after">
                 <field name="department_manager_user_id" widget="many2one_avatar_user"/>
                 <field name="fund_journal_id"

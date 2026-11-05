@@ -3,6 +3,8 @@
 
 import unittest
 
+from lxml import etree
+
 from odoo import Command, fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import new_test_user, tagged
@@ -184,6 +186,18 @@ class TestFundExpenseReport(TransactionCase):
     def _submit(self, sheet):
         sheet.with_user(sheet.employee_id.user_id).action_submit_sheet()
 
+    def _reject(self, sheet, user, reason="Falta un comprobante"):
+        action = sheet.with_user(user).reject_tier()
+        self.assertEqual(action["res_model"], "comment.wizard")
+        self.env["comment.wizard"].with_user(user).with_context(
+            action["context"]
+        ).create({"comment": reason}).add_comment()
+
+    def _review(self, sheet, signature):
+        return sheet.review_ids.filtered(
+            lambda r: r.definition_id.fund_expense_signature == signature
+        )
+
     def test_department_manager(self):
         self.assertEqual(self._sheet().department_manager_user_id, self.manager_user)
         # Si pide el propio responsable, no hay nivel 1.
@@ -233,6 +247,69 @@ class TestFundExpenseReport(TransactionCase):
             sheet._fund_expense_signature("area").done_by, self.manager_user
         )
         self.assertEqual(sheet._fund_expense_signature("afm").done_by, self.afm_user)
+
+    def test_submit_without_standard_activity(self):
+        sheet = self._sheet()
+        self._submit(sheet)
+        approval = self.env.ref("hr_expense.mail_act_expense_approval")
+        self.assertFalse(
+            sheet.activity_ids.filtered(lambda a: a.activity_type_id == approval)
+        )
+
+    def test_reject_first_level(self):
+        sheet = self._sheet()
+        self._submit(sheet)
+        self._reject(sheet, self.manager_user)
+        self.assertEqual(sheet.approval_state, "cancel")
+        area = self._review(sheet, "area")
+        self.assertEqual(area.status, "rejected")
+        self.assertEqual(area.done_by, self.manager_user)
+        self.assertEqual(area.comment, "Falta un comprobante")
+        # A Gerencia AyF ya no le queda nada por firmar.
+        self.assertEqual(self._review(sheet, "afm").status, "cancel")
+        self.assertFalse(sheet.with_user(self.afm_user).can_review)
+        self.assertTrue(
+            any("Falta un comprobante" in (m.body or "") for m in sheet.message_ids)
+        )
+
+    def test_reject_last_level_keeps_signature(self):
+        sheet = self._sheet()
+        self._submit(sheet)
+        sheet.with_user(self.manager_user).validate_tier()
+        self._reject(sheet, self.afm_user)
+        self.assertEqual(sheet.approval_state, "cancel")
+        self.assertFalse(sheet.account_move_ids)
+        self.assertEqual(
+            sheet._fund_expense_signature("area").done_by, self.manager_user
+        )
+        self.assertEqual(self._review(sheet, "afm").status, "rejected")
+
+    def test_resubmit_after_rejection(self):
+        sheet = self._sheet()
+        self._submit(sheet)
+        self._reject(sheet, self.manager_user)
+        sheet.with_user(self.employee_user).action_reset_expense_sheets()
+        self.assertEqual(sheet.state, "draft")
+        self.assertFalse(sheet.review_ids)
+        # need_validation queda en caché dentro de la transacción del test.
+        sheet.invalidate_recordset(["need_validation"])
+        self._submit(sheet)
+        self.assertEqual(len(sheet.review_ids), 2)
+        self.assertTrue(sheet.with_user(self.manager_user).can_review)
+
+    def test_form_hides_standard_approval(self):
+        view = self.env.ref("hr_expense.view_hr_expense_sheet_form")
+        form = etree.fromstring(
+            self.env["hr.expense.sheet"]
+            .with_user(self.afm_user)
+            .get_view(view.id, "form")["arch"]
+        )
+        for name in ("action_approve_expense_sheets", "action_refuse_expense_sheets"):
+            button = form.xpath(f"//button[@name='{name}']")[0]
+            self.assertIn("validation_status", button.get("invisible"))
+        self.assertEqual(
+            form.xpath("//field[@name='user_id']")[0].get("invisible"), "1"
+        )
 
     def test_fund_journal_only_afm(self):
         sheet = self._sheet()

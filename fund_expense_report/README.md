@@ -14,6 +14,12 @@ aprobación por niveles (`hr_expense_tier_validation`) y anticipos
 - **Al aprobarse el último nivel**, la hoja queda **aprobada sola** y se crean sus asientos. Quien
   aprueba no necesita ser aprobador de Gastos. Se mantienen los controles del núcleo y del
   anticipo.
+- **Una sola aprobación en pantalla:** mientras la hoja está en niveles, el formulario oculta
+  *Aprobar* y *Rechazar* del núcleo, y no se crea la actividad estándar. El campo *Manager* no se
+  muestra: el que firma es el Responsable del área.
+- **Al rechazar un nivel** se pide siempre el motivo y la hoja pasa a **Rechazado**, con el motivo
+  en el historial. Se conservan las firmas hechas, las aprobaciones que faltaban quedan canceladas
+  y el empleado la pasa a borrador para corregirla y reenviarla (ahí se piden las firmas de nuevo).
 - **Fondo de pago** (`fund_journal_id`): diario de banco (**fondo fijo**, transferencia) o de
   efectivo (**caja chica**). Solo lo elige el grupo *Gerencia de Administración y Finanzas*,
   también durante la aprobación. Se propone al registrar el pago.

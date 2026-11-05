@@ -94,6 +94,15 @@ class HrExpenseSheet(models.Model):
         self.invalidate_recordset(["need_validation"])
         return res
 
+    def activity_update(self):
+        # Quien firma ya tiene su aprobación por niveles: la actividad del
+        # núcleo le llegaría a otra persona (el Manager de la hoja).
+        in_tiers = self.filtered(
+            lambda sheet: sheet.state == "submit"
+            and (sheet.need_validation or sheet.review_ids)
+        )
+        return super(HrExpenseSheet, self - in_tiers).activity_update()
+
     def _fund_expense_check_receipts(self):
         missing = self.expense_line_ids.filtered(
             lambda line: not line.advance and not line.vendor_id.vat
@@ -132,6 +141,48 @@ class HrExpenseSheet(models.Model):
         to_approve._check_can_approve()
         to_approve._validate_analytic_distribution()
         to_approve._do_approve()
+
+    # Rechazo: un nivel que rechaza deja la hoja rechazada, con las firmas
+
+    def reject_tier(self):
+        # Siempre con motivo, sin exigir comentario también al aprobar: es lo
+        # que lee el empleado para corregir la hoja.
+        self.ensure_one()
+        sequences = self._get_sequences_to_approve(self.env.user)
+        reviews = self.review_ids.filtered(lambda x: x.sequence in sequences)
+        action = self._add_comment("reject", reviews)
+        action["name"] = self.env._("Motivo del rechazo")
+        return action
+
+    def _rejected_tier(self, tiers=False):
+        res = super()._rejected_tier(tiers=tiers)
+        self._fund_expense_refuse_if_rejected()
+        return res
+
+    def _fund_expense_refuse_if_rejected(self):
+        """Rechazar la hoja cuando un nivel la rechaza.
+
+        En sudo, como al aprobar: quien rechaza no necesita ser aprobador de
+        Gastos.
+        """
+        for sheet in self.sudo().filtered(lambda s: s.approval_state == "submit"):
+            rejected = sheet.review_ids.filtered(lambda r: r.status == "rejected")
+            if rejected:
+                sheet._do_refuse(rejected[-1].comment or "")
+
+    def _do_refuse(self, reason):
+        res = super()._do_refuse(reason)
+        self.sudo().review_ids.filtered(
+            lambda review: review.status in ("waiting", "pending")
+        ).status = "cancel"
+        return res
+
+    def _allow_to_remove_reviews(self, values):
+        # Por defecto OCA borra las revisiones al cancelar: la hoja rechazada
+        # conserva quién firmó y quién rechazó. Se borran al pasarla a borrador.
+        if values.get(self._state_field) == self._cancel_state:
+            return False
+        return super()._allow_to_remove_reviews(values)
 
     # Pago: se propone el fondo elegido por Administración
 
