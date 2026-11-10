@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- El Gerente: da la conformidad y ve todas las conformidades y sus Anexos
+         (solo lectura). No necesita permisos de Gastos. -->
+    <record id="group_fund_expense_batch_approver" model="res.groups">
+        <field name="name">Conformidad de rendiciones (Gerente)</field>
+        <field name="category_id" ref="base.module_category_human_resources_expenses"/>
+    </record>
+
+    <!-- Conformidades -->
+    <record id="rule_fund_expense_batch_reviewer" model="ir.rule">
+        <field name="name">Conformidades: visibles para quien las aprueba</field>
+        <field name="model_id" ref="model_fund_expense_batch"/>
+        <field name="groups" eval="[Command.link(ref('base.group_user'))]"/>
+        <field name="domain_force">[('review_ids.reviewer_ids', 'in', [user.id])]</field>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_fund_expense_batch_approver" model="ir.rule">
+        <field name="name">Conformidades: el Gerente las ve todas</field>
+        <field name="model_id" ref="model_fund_expense_batch"/>
+        <field name="groups" eval="[Command.link(ref('group_fund_expense_batch_approver'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_fund_expense_batch_manager" model="ir.rule">
+        <field name="name">Conformidades: Administración</field>
+        <field name="model_id" ref="model_fund_expense_batch"/>
+        <field name="groups" eval="[Command.link(ref('hr_expense.group_hr_expense_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Anexos de cada conformidad -->
+    <record id="rule_fund_expense_batch_line_reviewer" model="ir.rule">
+        <field name="name">Anexos de conformidades: visibles para quien las aprueba</field>
+        <field name="model_id" ref="model_fund_expense_batch_line"/>
+        <field name="groups" eval="[Command.link(ref('base.group_user'))]"/>
+        <field name="domain_force">[('batch_id.review_ids.reviewer_ids', 'in', [user.id])]</field>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_fund_expense_batch_line_approver" model="ir.rule">
+        <field name="name">Anexos de conformidades: el Gerente los ve todos</field>
+        <field name="model_id" ref="model_fund_expense_batch_line"/>
+        <field name="groups" eval="[Command.link(ref('group_fund_expense_batch_approver'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_fund_expense_batch_line_manager" model="ir.rule">
+        <field name="name">Anexos de conformidades: Administración</field>
+        <field name="model_id" ref="model_fund_expense_batch_line"/>
+        <field name="groups" eval="[Command.link(ref('hr_expense.group_hr_expense_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Quien da la conformidad lee los Anexos que la componen y sus gastos.
+         Las reglas de grupo se suman (OR) a las del núcleo. -->
+    <record id="rule_hr_expense_sheet_batch_reviewer" model="ir.rule">
+        <field name="name">Rendiciones: visibles para quien da la conformidad</field>
+        <field name="model_id" ref="hr_expense.model_hr_expense_sheet"/>
+        <field name="groups" eval="[Command.link(ref('base.group_user'))]"/>
+        <field name="domain_force">[('fund_batch_line_ids.batch_id.review_ids.reviewer_ids', 'in', [user.id])]</field>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_hr_expense_sheet_batch_approver" model="ir.rule">
+        <field name="name">Rendiciones: el Gerente ve las que están en conformidades</field>
+        <field name="model_id" ref="hr_expense.model_hr_expense_sheet"/>
+        <field name="groups" eval="[Command.link(ref('group_fund_expense_batch_approver'))]"/>
+        <field name="domain_force">[('fund_batch_line_ids', '!=', False)]</field>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_hr_expense_batch_reviewer" model="ir.rule">
+        <field name="name">Gastos: visibles para quien da la conformidad</field>
+        <field name="model_id" ref="hr_expense.model_hr_expense"/>
+        <field name="groups" eval="[Command.link(ref('base.group_user'))]"/>
+        <field name="domain_force">[('sheet_id.fund_batch_line_ids.batch_id.review_ids.reviewer_ids', 'in', [user.id])]</field>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_hr_expense_batch_approver" model="ir.rule">
+        <field name="name">Gastos: el Gerente ve los que están en conformidades</field>
+        <field name="model_id" ref="hr_expense.model_hr_expense"/>
+        <field name="groups" eval="[Command.link(ref('group_fund_expense_batch_approver'))]"/>
+        <field name="domain_force">[('sheet_id.fund_batch_line_ids', '!=', False)]</field>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+</odoo>

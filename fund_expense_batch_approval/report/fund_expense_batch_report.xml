@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_fund_expense_batch" model="ir.actions.report">
+        <field name="name">Conformidad de rendiciones</field>
+        <field name="model">fund.expense.batch</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">fund_expense_batch_approval.report_fund_expense_batch</field>
+        <field name="report_file">fund_expense_batch_approval.report_fund_expense_batch</field>
+        <field name="print_report_name">'Conformidad %s' % (object.name or '').replace('/', '-')</field>
+        <field name="binding_model_id" ref="model_fund_expense_batch"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_fund_expense_batch_document">
+        <t t-call="web.external_layout">
+            <t t-set="totals" t-value="o._fund_batch_totals()"/>
+            <div class="page">
+                <h3>Conformidad de rendiciones <span t-field="o.name"/></h3>
+                <p>
+                    Período: <span t-field="o.date_from"/> al <span t-field="o.date_to"/>
+                    <t t-if="o.user_id"> · Responsable: <span t-field="o.user_id"/></t>
+                </p>
+
+                <table class="table table-sm o_main_table">
+                    <thead>
+                        <tr>
+                            <th>Anexo</th>
+                            <th>Aprobado</th>
+                            <th>Empleado</th>
+                            <th>Área</th>
+                            <th>Fondos</th>
+                            <th class="text-end">Importe</th>
+                            <th>Observación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="o.line_ids" t-as="line">
+                            <td><span t-field="line.sheet_id.name"/></td>
+                            <td><span t-field="line.approval_date" t-options="{'widget': 'date'}"/></td>
+                            <td><span t-field="line.employee_id"/></td>
+                            <td><span t-field="line.department_id"/></td>
+                            <td><span t-field="line.fund_source"/></td>
+                            <td class="text-end">
+                                <span t-field="line.total_amount"
+                                      t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                            </td>
+                            <td><span t-if="line.observed" t-field="line.observation"/></td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5"><strong>Total (<t t-out="len(o.line_ids)"/> Anexos)</strong></td>
+                            <td class="text-end">
+                                <strong t-field="o.amount_total"
+                                        t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                            </td>
+                            <td/>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div class="row mt-4">
+                    <div class="col-6">
+                        <table class="table table-sm">
+                            <thead><tr><th>Por área</th><th class="text-end">Importe</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="totals['by_area']" t-as="row">
+                                    <td t-out="row[0]"/>
+                                    <td class="text-end"
+                                        t-out="row[1]"
+                                        t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-6">
+                        <table class="table table-sm">
+                            <thead><tr><th>Por fondo</th><th class="text-end">Importe</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="totals['by_source']" t-as="row">
+                                    <td t-out="row[0]"/>
+                                    <td class="text-end"
+                                        t-out="row[1]"
+                                        t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-5" style="page-break-inside: avoid;">
+                    <t t-if="o.state == 'approved'">
+                        <p>
+                            <strong>Conformidad:</strong> <span t-field="o.approved_by_id"/>,
+                            <span t-field="o.approved_date"/>
+                        </p>
+                        <p t-if="o.observed_count">
+                            Con <t t-out="o.observed_count"/> Anexo(s) observado(s).
+                        </p>
+                    </t>
+                    <p t-else=""><strong>Conformidad pendiente.</strong></p>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_fund_expense_batch">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="fund_expense_batch_approval.report_fund_expense_batch_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

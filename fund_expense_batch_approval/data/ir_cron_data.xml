@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Corre todos los días: arma la conformidad solo cuando terminó un
+         período (semana o mes) que todavía no tiene la suya. -->
+    <record id="ir_cron_fund_expense_batch" model="ir.cron">
+        <field name="name">Conformidad de rendiciones: armado automático</field>
+        <field name="model_id" ref="base.model_res_company"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_fund_expense_batch()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+</odoo>

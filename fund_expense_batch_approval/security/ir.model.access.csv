@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_fund_expense_batch_user,fund.expense.batch.user,model_fund_expense_batch,base.group_user,1,1,0,0
+access_fund_expense_batch_manager,fund.expense.batch.manager,model_fund_expense_batch,hr_expense.group_hr_expense_manager,1,1,1,1
+access_fund_expense_batch_line_user,fund.expense.batch.line.user,model_fund_expense_batch_line,base.group_user,1,0,0,0
+access_fund_expense_batch_line_manager,fund.expense.batch.line.manager,model_fund_expense_batch_line,hr_expense.group_hr_expense_manager,1,1,1,1
+access_fund_expense_batch_observe_user,fund.expense.batch.observe.user,model_fund_expense_batch_observe,base.group_user,1,1,1,1

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="fund_expense_batch_observe_view_form" model="ir.ui.view">
+        <field name="name">fund.expense.batch.observe.form</field>
+        <field name="model">fund.expense.batch.observe</field>
+        <field name="arch" type="xml">
+            <form string="Observar Anexo">
+                <group>
+                    <field name="line_id" invisible="1"/>
+                    <field name="sheet_id" readonly="1"/>
+                    <field name="observation" placeholder="Qué hay que revisar en este Anexo"/>
+                </group>
+                <p class="text-muted">
+                    La conformidad se puede dar igual: la observación le llega a
+                    Administración como actividad en el Anexo.
+                </p>
+                <footer>
+                    <button name="action_confirm" type="object" string="Observar"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button special="cancel" string="Cancelar" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

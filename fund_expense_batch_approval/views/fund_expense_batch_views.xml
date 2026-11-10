@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="fund_expense_batch_view_form" model="ir.ui.view">
+        <field name="name">fund.expense.batch.form</field>
+        <field name="model">fund.expense.batch</field>
+        <field name="arch" type="xml">
+            <form string="Conformidad de rendiciones">
+                <header>
+                    <!-- La aprobación por niveles agrega sus botones después de este. -->
+                    <button name="action_add_pending" type="object"
+                            string="Agregar aprobados pendientes"
+                            class="btn-secondary"
+                            invisible="state != 'draft' or validation_status not in ('no', False)"
+                            groups="hr_expense.group_hr_expense_manager"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_sheets" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="sheet_count == 0">
+                            <field name="sheet_count" widget="statinfo" string="Anexos"/>
+                        </button>
+                        <button name="action_open_sheets" type="object"
+                                class="oe_stat_button text-warning" icon="fa-flag"
+                                invisible="observed_count == 0">
+                            <field name="observed_count" widget="statinfo" string="Observados"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <field name="can_review" invisible="1"/>
+                    <group>
+                        <group>
+                            <label for="date_from" string="Período"/>
+                            <div class="o_row">
+                                <field name="date_from"/> <span>al</span> <field name="date_to"/>
+                            </div>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="amount_total"/>
+                            <field name="approved_by_id" widget="many2one_avatar_user"
+                                   invisible="state != 'approved'"/>
+                            <field name="approved_date" invisible="state != 'approved'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Anexos" name="lines">
+                            <field name="line_ids">
+                                <list editable="bottom" decoration-warning="observed">
+                                    <field name="sheet_id"
+                                           domain="[('company_id', '=', parent.company_id), ('approval_state', '=', 'approve'), ('fund_batch_line_ids', '=', False)]"
+                                           options="{'no_create': True}"/>
+                                    <field name="employee_id"/>
+                                    <field name="department_id"/>
+                                    <field name="approval_date" widget="date"/>
+                                    <field name="fund_source" optional="show"/>
+                                    <field name="sheet_state" optional="show" widget="badge"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="total_amount" sum="Total"/>
+                                    <field name="observed" widget="boolean_toggle" readonly="1" optional="show"/>
+                                    <field name="observation" optional="show"/>
+                                    <button name="action_open_sheet" type="object"
+                                            icon="fa-external-link" title="Abrir el Anexo"/>
+                                    <button name="action_observe" type="object"
+                                            icon="fa-flag" title="Observar"
+                                            string="Observar"
+                                            invisible="not parent.can_review or parent.state != 'draft'"/>
+                                    <button name="action_clear_observation" type="object"
+                                            icon="fa-times" title="Quitar la observación"
+                                            invisible="not observed or not parent.can_review or parent.state != 'draft'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Totales" name="totals" invisible="sheet_count == 0">
+                            <field name="summary_html" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="fund_expense_batch_view_list" model="ir.ui.view">
+        <field name="name">fund.expense.batch.list</field>
+        <field name="model">fund.expense.batch</field>
+        <field name="arch" type="xml">
+            <list string="Conformidades de rendiciones" create="1">
+                <field name="name"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="user_id" widget="many2one_avatar_user" optional="show"/>
+                <field name="sheet_count"/>
+                <field name="observed_count" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="amount_total" sum="Total"/>
+                <field name="approved_by_id" optional="show"/>
+                <field name="validation_status" widget="badge" optional="show"
+                       decoration-info="validation_status in ('waiting', 'pending')"
+                       decoration-danger="validation_status == 'rejected'"
+                       decoration-success="validation_status == 'validated'"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'approved'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="fund_expense_batch_view_search" model="ir.ui.view">
+        <field name="name">fund.expense.batch.search</field>
+        <field name="model">fund.expense.batch</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="line_ids" string="Anexo" filter_domain="[('line_ids.sheet_id', 'ilike', self)]"/>
+                <filter string="En armado" name="draft"
+                        domain="[('state', '=', 'draft'), ('validation_status', 'in', ('no', False))]"/>
+                <filter string="Esperando al Gerente" name="pending"
+                        domain="[('state', '=', 'draft'), ('validation_status', 'in', ('waiting', 'pending'))]"/>
+                <filter string="Rechazadas" name="rejected"
+                        domain="[('validation_status', '=', 'rejected')]"/>
+                <filter string="Conformes" name="approved" domain="[('state', '=', 'approved')]"/>
+                <separator/>
+                <filter string="Con observaciones" name="observed"
+                        domain="[('line_ids.observed', '=', True)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Estado" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Período" name="group_date_to" context="{'group_by': 'date_to'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_fund_expense_batch" model="ir.actions.act_window">
+        <field name="name">Conformidades</field>
+        <field name="res_model">fund.expense.batch</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Armar una conformidad de rendiciones</p>
+            <p>
+                Agrupa los Anexos I aprobados de un período para que el Gerente dé su
+                conformidad de una sola vez. Si la frecuencia es semanal o mensual
+                (Gastos › Configuración › Ajustes), se arman solas.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_fund_expense_batch"
+              name="Conformidades"
+              parent="hr_expense.menu_hr_expense_root"
+              action="action_fund_expense_batch"
+              groups="hr_expense.group_hr_expense_manager,group_fund_expense_batch_approver"
+              sequence="3"/>
+</odoo>

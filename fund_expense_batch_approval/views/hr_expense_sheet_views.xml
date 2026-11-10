@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_expense_sheet_form_fund_batch" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.form.fund.batch</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="fund_expense_report.view_hr_expense_sheet_form_fund"/>
+        <field name="arch" type="xml">
+            <field name="fund_source" position="after">
+                <field name="fund_batch_id" invisible="not fund_batch_id"/>
+                <field name="fund_conformity" widget="badge" invisible="not fund_conformity"
+                       decoration-info="fund_conformity == 'pending'"
+                       decoration-success="fund_conformity == 'conformed'"
+                       decoration-warning="fund_conformity == 'observed'"/>
+                <field name="fund_batch_observation" invisible="fund_conformity != 'observed'"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_hr_expense_sheet_list_fund_batch" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.list.fund.batch</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="hr_expense.view_hr_expense_sheet_tree"/>
+        <field name="arch" type="xml">
+            <field name="state" position="after">
+                <field name="fund_conformity" widget="badge" optional="hide"
+                       decoration-info="fund_conformity == 'pending'"
+                       decoration-success="fund_conformity == 'conformed'"
+                       decoration-warning="fund_conformity == 'observed'"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_hr_expense_sheet_search_fund_batch" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.search.fund.batch</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="fund_expense_report.view_hr_expense_sheet_search_fund"/>
+        <field name="arch" type="xml">
+            <filter name="fund_none" position="after">
+                <separator/>
+                <filter string="Aprobados sin conformidad" name="fund_batch_missing"
+                        domain="[('approval_state', '=', 'approve'), ('fund_batch_line_ids', '=', False)]"/>
+                <filter string="Observados por el Gerente" name="fund_batch_observed"
+                        domain="[('fund_conformity', '=', 'observed')]"/>
+            </filter>
+        </field>
+    </record>
+</odoo>

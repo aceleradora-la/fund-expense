@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_fund_batch" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.fund.batch</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="hr_expense.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='hr_expense']" position="inside">
+                <block title="Conformidad de rendiciones" name="fund_expense_batch">
+                    <setting id="fund_expense_batch_frequency" company_dependent="1"
+                             help="El Gerente da su conformidad sobre los Anexos ya aprobados, de una sola vez por período.">
+                        <field name="fund_expense_batch_frequency"/>
+                        <div class="content-group" invisible="fund_expense_batch_frequency == 'manual'">
+                            <div class="row mt16">
+                                <label for="fund_expense_batch_user_id" class="col-lg-4 o_light_label"/>
+                                <field name="fund_expense_batch_user_id" options="{'no_create': True}"/>
+                            </div>
+                            <div class="row" invisible="not fund_expense_batch_last_period_end">
+                                <label for="fund_expense_batch_last_period_end" class="col-lg-4 o_light_label"/>
+                                <field name="fund_expense_batch_last_period_end"/>
+                            </div>
+                            <div class="text-muted mt8">
+                                Al terminar cada período se arma sola con todos los Anexos
+                                aprobados que no tienen conformidad, y se envía al Gerente.
+                            </div>
+                        </div>
+                        <div class="mt8">
+                            <button name="%(action_fund_expense_batch)d" type="action"
+                                    string="Conformidades" class="btn-link" icon="oi-arrow-right"/>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>
