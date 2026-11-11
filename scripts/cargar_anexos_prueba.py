@@ -15,8 +15,9 @@ pasar por las aprobaciones como lo harían sus aprobadores reales:
 - Gerencia AyF les asigna fondos distintos (fondo fijo, caja chica,
   tarjeta) para ver los totales por fondo.
 - Firman el responsable del área y Gerencia AyF, con sus usuarios.
-- Los dos últimos quedan a medio camino, para comprobar que NO entran a la
-  conformidad: uno enviado sin firmas y otro con solo la primera firma.
+- Dos quedan a medio camino, para comprobar que NO entran a la
+  conformidad: el último, enviado sin firmas, y otro con dos niveles que
+  tiene solo la primera firma (se marcan en el listado).
 
 Los Anexos se llaman «[PRUEBA CONF] ...», para encontrarlos y borrarlos.
 
@@ -71,18 +72,22 @@ if BORRAR:
     sheets = Sheet.search([("name", "=like", f"{PREFIJO}%")])
     borrados, salteados = [], []
     for sheet in sheets:
+        nombre = sheet.name
         batch = sheet.fund_batch_id if "fund_batch_id" in sheet._fields else False
         if batch and not batch._fund_batch_is_editable():
-            salteados.append(f"{sheet.name} (en {batch.name}, ya enviada)")
+            salteados.append(f"{nombre} (en {batch.name}, ya enviada)")
             continue
         try:
             with env.cr.savepoint():
+                # Con revisiones abiertas OCA no deja volverla a borrador: en
+                # los Anexos de prueba se saltea ese control.
+                sheet = sheet.with_context(skip_validation_check=True)
                 if sheet.state not in ("draft", "cancel"):
                     sheet.action_reset_expense_sheets()
                 sheet.unlink()
-            borrados.append(sheet.name)
+            borrados.append(nombre)
         except Exception as error:  # noqa: BLE001
-            salteados.append(f"{sheet.name} ({error})")
+            salteados.append(f"{nombre} ({error})")
     print(f"Borrados: {len(borrados)}")
     for name in salteados:
         print(f"  no se borró: {name}")
@@ -93,11 +98,19 @@ if BORRAR:
 # ---------------------------------------------------------------------------
 # Datos de la base
 # ---------------------------------------------------------------------------
+existentes = Sheet.search_count([("name", "=like", f"{PREFIJO}%")])
+if existentes:
+    raise SystemExit(
+        f"Ya hay {existentes} Anexos de prueba. Para empezar de nuevo, primero "
+        "borralos con ANEXOS_BORRAR=1 ANEXOS_GRABAR=1."
+    )
+
 employees = env["hr.employee"].search(
     [
         ("company_id", "=", company.id),
         ("user_id", "!=", False),
         ("user_id.share", "=", False),
+        ("user_id", "!=", env.ref("base.user_admin").id),
         ("department_id", "!=", False),
     ],
     order="department_id, id",
@@ -150,23 +163,53 @@ def firmar(sheet, niveles=None):
     `niveles` limita cuántas firmas se hacen (None: todas). Sin definiciones
     de aprobación, aprueba Gerencia AyF directo.
     """
+    admin = env.ref("base.user_admin")
     hechas = 0
-    for _ in range(5):
+    for _ in range(6):
+        # Leer de la base: el estado de las revisiones se actualiza al grabar.
+        env.flush_all()
+        env.invalidate_all()
         if sheet.approval_state != "submit" or (niveles is not None and hechas >= niveles):
-            break
-        pending = sheet.review_ids.filtered(lambda r: r.status == "pending")
+            return
         if not sheet.review_ids:
             sheet.with_user(afm_user).action_approve_expense_sheets()
-            break
-        if not pending:
-            break
-        reviewer = pending[0].reviewer_ids[:1]
-        if not reviewer:
-            print(f"  {sheet.name}: el nivel «{pending[0].name}» no tiene a nadie para firmar")
-            break
-        sheet.with_user(reviewer).validate_tier()
+            return
+        abiertas = sheet.review_ids.filtered(lambda r: r.status in ("waiting", "pending"))
+        # Quien puede firmar ahora (respeta el orden de los niveles). El
+        # administrador, solo si no hay otro.
+        candidatos = abiertas.reviewer_ids.filtered(lambda u: not u.share).sorted(
+            lambda u: u == admin
+        )
+        firmante = candidatos.filtered(lambda u: sheet.with_user(u).can_review)[:1]
+        if not firmante:
+            detalle = "; ".join(
+                "{}: {} ({})".format(
+                    r.name, r.status, ", ".join(r.reviewer_ids.mapped("name")) or "nadie"
+                )
+                for r in abiertas
+            )
+            print(f"  {sheet.name}: nadie puede firmar ahora. {detalle}")
+            return
+        accion = sheet.with_user(firmante).validate_tier()
+        # Si el nivel pide comentario, OCA abre el asistente en lugar de firmar.
+        if isinstance(accion, dict) and accion.get("res_model") == "comment.wizard":
+            env["comment.wizard"].with_user(firmante).with_context(
+                **accion["context"]
+            ).create({"comment": "Firmado por el script de prueba"}).add_comment()
         hechas += 1
 
+
+def tiene_dos_niveles(employee):
+    manager = employee.department_id.manager_id
+    return bool(manager.user_id) and manager != employee
+
+
+# El último queda enviado sin firmas; el que queda con una sola firma tiene
+# que ser uno con dos niveles (si no, esa firma lo aprueba del todo).
+sin_firmas = len(chosen) - 1
+una_firma = next(
+    (i for i in range(sin_firmas - 1, -1, -1) if tiene_dos_niveles(chosen[i])), None
+)
 
 resultado = []
 today = date.today()
@@ -206,9 +249,9 @@ for index, employee in enumerate(chosen):
             sheet.with_user(employee.user_id).action_submit_sheet()
             if funds and afm_user:
                 sheet.with_user(afm_user).fund_journal_id = funds[index % len(funds)]
-            if index == len(chosen) - 1:
+            if index == sin_firmas:
                 pass  # enviado, sin firmas
-            elif index == len(chosen) - 2:
+            elif index == una_firma:
                 firmar(sheet, niveles=1)  # solo la primera firma
             else:
                 firmar(sheet)
@@ -225,7 +268,9 @@ for index, employee in enumerate(chosen):
             sheet.total_amount,
             "reintegro" if reintegro else "empresa",
             sheet.fund_journal_id.name or "-",
-            estado,
+            estado
+            + (" [sin firmas]" if index == sin_firmas else "")
+            + (" [una firma]" if index == una_firma else ""),
             firmas or "(sin niveles)",
             sheet.approval_state,
         )
@@ -237,5 +282,5 @@ for name, area, total, paga, fondo, estado, firmas, _approval in resultado:
 
 aprobados = sum(1 for row in resultado if row[7] == "approve")
 print(f"\nAprobados (entran a la conformidad): {aprobados} de {len(resultado)}")
-print("Los dos últimos no tienen que entrar: uno sin firmas y otro con una sola.")
+print("No tienen que entrar: el «sin firmas» y el de «una firma».")
 terminar()
