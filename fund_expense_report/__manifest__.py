@@ -4,7 +4,7 @@
     "name": "Fundación - Rendición de fondos",
     "summary": "Anexo I: solicitud y rendición de fondos sobre Gastos, con aprobación "
     "por niveles, fondo fijo o caja chica y proveedor con CUIT",
-    "version": "18.0.1.6.0",
+    "version": "18.0.1.7.0",
     "category": "Human Resources/Expenses",
     "website": "https://github.com/aceleradora-la/fund-expense",
     "author": "aceleradora.la",
@@ -14,6 +14,9 @@
         "hr_expense",
         "hr_expense_tier_validation",
         "hr_expense_advance_clearing",
+        # La factura precargada va a un diario con documentos (localización
+        # argentina): ver views/account_move_views.xml.
+        "l10n_latam_invoice_document",
     ],
     "data": [
         "security/fund_expense_security.xml",

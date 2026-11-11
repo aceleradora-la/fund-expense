@@ -17,4 +17,19 @@
             </xpath>
         </field>
     </record>
+
+    <!-- La factura del Anexo nace en borrador sin número: la del proveedor llega
+         después (o nunca, si se paga sin factura antes). El número deja de ser
+         obligatorio para guardar el borrador; para confirmarla lo sigue exigiendo
+         la localización (_check_l10n_latam_documents). -->
+    <record id="view_move_form_fund_expense_latam" model="ir.ui.view">
+        <field name="name">account.move.form.fund.expense.latam</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="l10n_latam_invoice_document.view_move_form"/>
+        <field name="arch" type="xml">
+            <field name="l10n_latam_document_number" position="attributes">
+                <attribute name="required">partner_id and l10n_latam_use_documents and l10n_latam_manual_document_number and not (fund_expense_sheet_id and state == 'draft')</attribute>
+            </field>
+        </field>
+    </record>
 </odoo>

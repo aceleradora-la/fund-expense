@@ -499,6 +499,14 @@ class TestFundExpenseReport(TransactionCase):
         self.cash_journal.fund_expense_source = False
         self.assertEqual(sheet._fund_expense_sources(), set())
 
+    def test_bill_form_number_not_required_for_anexo_draft(self):
+        # Para "Pagar sin factura" hay que poder guardar el borrador sin número.
+        arch = self.env["account.move"].get_view(
+            self.env.ref("account.view_move_form").id, "form"
+        )["arch"]
+        arch = arch.decode() if isinstance(arch, bytes) else arch
+        self.assertIn("not (fund_expense_sheet_id and state == 'draft')", arch)
+
     def test_form_hides_payment_method(self):
         view = self.env.ref("hr_expense.view_hr_expense_sheet_form")
         form = etree.fromstring(
