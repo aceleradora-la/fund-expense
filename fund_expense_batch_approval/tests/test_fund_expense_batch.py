@@ -203,6 +203,11 @@ class TestFundExpenseBatch(TransactionCase):
         line = batch.line_ids.filtered(lambda line: line.sheet_id == approved)
         self.assertEqual(line.department_id, self.department)
         self.assertEqual(line.total_amount, approved.total_amount)
+        # El día de aprobación tal como lo guarda el núcleo, sin correrlo por
+        # la zona horaria.
+        self.assertEqual(line.approval_day, approved.approval_date.date())
+        approved.sudo().approval_date = datetime(2026, 11, 11)
+        self.assertEqual(line.approval_day, date(2026, 11, 11))
 
     def test_only_approved_sheets(self):
         with self.assertRaises(UserError):

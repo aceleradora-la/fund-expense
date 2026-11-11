@@ -10,7 +10,7 @@ from odoo.exceptions import UserError
 class FundExpenseBatchLine(models.Model):
     _name = "fund.expense.batch.line"
     _description = "Anexo en una conformidad"
-    _order = "department_id, approval_date, id"
+    _order = "department_id, approval_day, id"
     _rec_name = "sheet_id"
 
     batch_id = fields.Many2one(
@@ -34,8 +34,11 @@ class FundExpenseBatchLine(models.Model):
     department_id = fields.Many2one(
         related="sheet_id.department_id", string="Área", store=True
     )
-    approval_date = fields.Datetime(
-        related="sheet_id.approval_date", string="Aprobado el", store=True
+    approval_day = fields.Date(
+        string="Aprobado el",
+        compute="_compute_approval_day",
+        store=True,
+        compute_sudo=True,
     )
     payment_mode = fields.Selection(related="sheet_id.payment_mode")
     fund_source = fields.Selection(related="sheet_id.fund_source", string="Fondos")
@@ -60,6 +63,14 @@ class FundExpenseBatchLine(models.Model):
             "Cada Anexo puede estar en una sola conformidad.",
         ),
     ]
+
+    @api.depends("sheet_id.approval_date")
+    def _compute_approval_day(self):
+        # El núcleo guarda el día de aprobación en un Datetime a la medianoche
+        # (UTC): mostrado con la zona horaria del usuario (UTC-3) caía en el
+        # día anterior. Se toma el día tal como se guardó.
+        for line in self:
+            line.approval_day = fields.Date.to_date(line.sheet_id.approval_date)
 
     # Armado: solo con la conformidad en borrador y sin pedir la aprobación
 

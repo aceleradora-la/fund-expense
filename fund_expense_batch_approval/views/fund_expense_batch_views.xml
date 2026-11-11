@@ -57,7 +57,7 @@
                                            options="{'no_create': True}"/>
                                     <field name="employee_id"/>
                                     <field name="department_id"/>
-                                    <field name="approval_date" widget="date"/>
+                                    <field name="approval_day"/>
                                     <field name="fund_source" optional="show"/>
                                     <field name="sheet_state" optional="show" widget="badge"/>
                                     <field name="currency_id" column_invisible="1"/>

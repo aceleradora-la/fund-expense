@@ -36,7 +36,7 @@
                     <tbody>
                         <tr t-foreach="o.line_ids" t-as="line">
                             <td><span t-field="line.sheet_id.name"/></td>
-                            <td><span t-field="line.approval_date" t-options="{'widget': 'date'}"/></td>
+                            <td><span t-field="line.approval_day"/></td>
                             <td><span t-field="line.employee_id"/></td>
                             <td><span t-field="line.department_id"/></td>
                             <td><span t-field="line.fund_source"/></td>
