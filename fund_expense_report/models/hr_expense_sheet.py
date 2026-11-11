@@ -7,6 +7,8 @@ from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError
 from odoo.tools.misc import clean_context
 
+from .account_journal import FUND_SOURCES
+
 AFM_GROUP = "fund_expense_report.group_fund_expense_afm"
 
 
@@ -35,14 +37,13 @@ class HrExpenseSheet(models.Model):
         "registrar el pago.",
     )
     fund_source = fields.Selection(
-        selection=[
-            ("fondo_fijo", "Fondo fijo"),
-            ("caja_chica", "Caja chica"),
-            ("tarjeta", "Tarjeta de crédito"),
-        ],
+        selection=FUND_SOURCES,
         string="Fondos",
         compute="_compute_fund_source",
         store=True,
+        help="Lo determina el diario desde el que se pagó (el «Fondo del Anexo I» "
+        "de cada diario). Mientras no se pague, el Fondo de pago previsto. Si se "
+        "pagó desde varios fondos, el de mayor importe.",
     )
     fund_bill_ids = fields.One2many(
         comodel_name="account.move",
@@ -99,11 +100,53 @@ class HrExpenseSheet(models.Model):
             "no_user": self.env._("No aplica: el área no tiene responsable con usuario"),
         }.get(reason, False)
 
-    @api.depends("fund_journal_id.type")
+    @api.depends(
+        "fund_journal_id.fund_expense_source",
+        "payment_state",
+        "fund_bill_ids.payment_state",
+        "fund_bill_ids.fund_expense_payment_ids.state",
+        "fund_bill_ids.fund_expense_payment_ids.journal_id",
+        "account_move_ids.payment_state",
+    )
     def _compute_fund_source(self):
-        sources = {"bank": "fondo_fijo", "cash": "caja_chica", "credit": "tarjeta"}
         for sheet in self:
-            sheet.fund_source = sources.get(sheet.fund_journal_id.type, False)
+            payments = sheet._fund_expense_payments()
+            if not payments:
+                sheet.fund_source = sheet.fund_journal_id.fund_expense_source
+                continue
+            by_source = defaultdict(float)
+            for payment in payments:
+                source = payment.journal_id.fund_expense_source
+                if source:
+                    by_source[source] += payment.amount
+            sheet.fund_source = (
+                max(by_source, key=by_source.get) if by_source else False
+            )
+
+    def _fund_expense_payments(self):
+        """Pagos hechos del Anexo: de las facturas del proveedor (también los
+        pagos sin factura) o del asiento del reintegro."""
+        self.ensure_one()
+        moves = self._fund_expense_active_bills() or self.account_move_ids
+        moves = moves.filtered(lambda move: move.state != "cancel")
+        payments = moves.reconciled_payment_ids | moves.fund_expense_payment_ids
+        return payments.filtered(
+            lambda payment: payment.state not in ("draft", "canceled", "rejected")
+        )
+
+    def _fund_expense_sources(self):
+        """Casillas del recuadro Fondos del Anexo I.
+
+        Las de los diarios desde los que se pagó (todas, si fueron varios); sin
+        pagos, la del Fondo de pago previsto.
+        """
+        self.ensure_one()
+        payments = self._fund_expense_payments()
+        if payments:
+            sources = set(payments.journal_id.mapped("fund_expense_source"))
+        else:
+            sources = {self.fund_journal_id.fund_expense_source}
+        return sources - {False}
 
     @api.depends("fund_bill_ids")
     def _compute_fund_bill_count(self):

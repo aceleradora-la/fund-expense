@@ -4,7 +4,7 @@
     "name": "Fundación - Rendición de fondos",
     "summary": "Anexo I: solicitud y rendición de fondos sobre Gastos, con aprobación "
     "por niveles, fondo fijo o caja chica y proveedor con CUIT",
-    "version": "18.0.1.5.0",
+    "version": "18.0.1.6.0",
     "category": "Human Resources/Expenses",
     "website": "https://github.com/aceleradora-la/fund-expense",
     "author": "aceleradora.la",
@@ -17,6 +17,7 @@
     ],
     "data": [
         "security/fund_expense_security.xml",
+        "views/account_journal_views.xml",
         "views/account_move_views.xml",
         "views/account_payment_views.xml",
         "views/hr_expense_views.xml",

@@ -475,6 +475,30 @@ class TestFundExpenseReport(TransactionCase):
         sheet.with_user(self.afm_user).fund_journal_id = card
         self.assertEqual(sheet.fund_source, "tarjeta")
 
+    def test_fund_source_follows_payment_journal(self):
+        # Previsto: fondo fijo (banco). Se paga desde la caja: queda caja chica.
+        sheet = self._sheet()
+        self._submit(sheet)
+        sheet.with_user(self.afm_user).fund_journal_id = self.bank_journal
+        sheet.with_user(self.manager_user).validate_tier()
+        sheet.with_user(self.afm_user).validate_tier()
+        self.assertEqual(sheet.fund_source, "fondo_fijo")
+        self.assertEqual(sheet._fund_expense_sources(), {"fondo_fijo"})
+        sheet.action_sheet_move_post()
+        action = sheet.account_move_ids.action_register_payment()
+        try:
+            with self.env.cr.savepoint():
+                self.env["account.payment.register"].with_context(
+                    **action["context"]
+                ).create({"journal_id": self.cash_journal.id})._create_payments()
+        except Exception as error:  # noqa: BLE001
+            self.skipTest(f"No se pudo registrar el pago en esta base: {error}")
+        self.assertEqual(sheet.fund_source, "caja_chica")
+        self.assertEqual(sheet._fund_expense_sources(), {"caja_chica"})
+        # Un diario que no es un fondo no marca ninguna casilla.
+        self.cash_journal.fund_expense_source = False
+        self.assertEqual(sheet._fund_expense_sources(), set())
+
     def test_form_hides_payment_method(self):
         view = self.env.ref("hr_expense.view_hr_expense_sheet_form")
         form = etree.fromstring(

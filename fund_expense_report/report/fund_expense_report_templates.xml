@@ -163,19 +163,21 @@
                     </tr>
                 </table>
 
+                <!-- Según el diario desde el que se pagó; sin pagos, el fondo previsto. -->
+                <t t-set="sources" t-value="o._fund_expense_sources()"/>
                 <table class="fe-grid">
                     <tr>
                         <th colspan="3">FONDOS (Uso exclusivo Administración)</th>
                     </tr>
                     <tr>
                         <td style="width: 33%;">
-                            FONDO FIJO: <strong t-out="'[X]' if o.fund_source == 'fondo_fijo' else '[ ]'"/>
+                            FONDO FIJO: <strong t-out="'[X]' if 'fondo_fijo' in sources else '[ ]'"/>
                         </td>
                         <td style="width: 33%;">
-                            CAJA CHICA: <strong t-out="'[X]' if o.fund_source == 'caja_chica' else '[ ]'"/>
+                            CAJA CHICA: <strong t-out="'[X]' if 'caja_chica' in sources else '[ ]'"/>
                         </td>
                         <td>
-                            TARJETA DE CRÉDITO: <strong t-out="'[X]' if o.fund_source == 'tarjeta' else '[ ]'"/>
+                            TARJETA DE CRÉDITO: <strong t-out="'[X]' if 'tarjeta' in sources else '[ ]'"/>
                         </td>
                     </tr>
                 </table>
