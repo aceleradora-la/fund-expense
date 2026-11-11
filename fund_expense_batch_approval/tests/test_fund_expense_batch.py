@@ -210,10 +210,55 @@ class TestFundExpenseBatch(TransactionCase):
 
     def test_sheet_in_one_batch_only(self):
         sheet = self._sheet()
-        self._batch([sheet])
+        batch = self._batch([sheet])
+        # En otra conformidad.
+        with self.assertRaises(UserError):
+            self._batch([sheet])
+        # Dos veces en la misma.
+        with self.assertRaises(UserError):
+            self._batch_line_create(batch, sheet)
+        other = self._sheet()
+        with self.assertRaises(UserError):
+            self._batch([other, other])
+        # Y el índice único por si se saltea el control.
         with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
             with self.env.cr.savepoint():
-                self._batch([sheet])
+                self.env.cr.execute(
+                    "INSERT INTO fund_expense_batch_line (batch_id, sheet_id) "
+                    "VALUES (%s, %s)",
+                    (batch.id, sheet.id),
+                )
+
+    def test_selector_skips_selected_sheets(self):
+        sheet = self._sheet()
+        batch = self._batch([sheet])
+        self.assertEqual(batch.selected_sheet_ids, sheet)
+        arch = self.env["fund.expense.batch"].get_view(view_type="form")["arch"]
+        arch = arch.decode() if isinstance(arch, bytes) else arch
+        self.assertIn("parent.selected_sheet_ids", arch)
+
+    def test_create_from_sheet_list(self):
+        first = self._sheet()
+        second = self._sheet()
+        first.sudo().approval_date = datetime(2026, 11, 2)
+        second.sudo().approval_date = datetime(2026, 11, 5)
+        action = (first | second).with_user(self.afm_user).action_fund_batch_create()
+        batch = self.env["fund.expense.batch"].browse(action["res_id"])
+        self.assertEqual(batch.line_ids.sheet_id, first | second)
+        self.assertEqual((batch.date_from, batch.date_to), (date(2026, 11, 2), date(2026, 11, 5)))
+        self.assertEqual(batch.state, "draft")
+        self.assertFalse(batch.review_ids)
+        # Ya están en una conformidad.
+        with self.assertRaises(UserError):
+            first.with_user(self.afm_user).action_fund_batch_create()
+
+    def test_create_from_sheet_list_checks(self):
+        with self.assertRaises(UserError):
+            self._sheet(approve=False).with_user(self.afm_user).action_fund_batch_create()
+        with self.assertRaises(AccessError):
+            self._sheet().with_user(self.employee_user).action_fund_batch_create()
+        binding = self.env.ref("fund_expense_batch_approval.action_server_fund_batch_create")
+        self.assertEqual(binding.binding_model_id.model, "hr.expense.sheet")
 
     def test_empty_batch_cannot_be_sent(self):
         with self.assertRaises(UserError):

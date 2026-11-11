@@ -76,6 +76,7 @@ class FundExpenseBatchLine(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        self._fund_batch_check_duplicates([vals.get("sheet_id") for vals in vals_list])
         lines = super().create(vals_list)
         self._fund_batch_check_editable(lines.batch_id)
         not_approved = lines.sheet_id.filtered(
@@ -90,9 +91,33 @@ class FundExpenseBatchLine(models.Model):
             )
         return lines
 
+    @api.model
+    def _fund_batch_check_duplicates(self, sheet_ids, exclude=None):
+        """Un Anexo, una conformidad: mensaje claro antes del índice único."""
+        sheet_ids = [sheet_id for sheet_id in sheet_ids if sheet_id]
+        repeated = {sheet_id for sheet_id in sheet_ids if sheet_ids.count(sheet_id) > 1}
+        domain = [("sheet_id", "in", sheet_ids)]
+        if exclude:
+            domain.append(("id", "not in", exclude.ids))
+        taken = self.sudo().search(domain)
+        if not (repeated or taken):
+            return
+        sheets = self.env["hr.expense.sheet"].sudo().browse(repeated) | taken.sheet_id
+        message = self.env._(
+            "Cada Anexo puede estar en una sola conformidad. Ya están cargados: %s",
+            ", ".join(sheets.mapped("name")),
+        )
+        if taken:
+            message += "\n" + "\n".join(
+                f"- {line.sheet_id.name}: {line.batch_id.name}" for line in taken
+            )
+        raise UserError(message)
+
     def write(self, vals):
         if {"batch_id", "sheet_id"} & set(vals):
             self._fund_batch_check_editable(self.batch_id)
+        if vals.get("sheet_id"):
+            self._fund_batch_check_duplicates([vals["sheet_id"]] * len(self), self)
         res = super().write(vals)
         if "batch_id" in vals:
             self._fund_batch_check_editable(self.batch_id)

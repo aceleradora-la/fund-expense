@@ -1,8 +1,8 @@
 # Copyright 2026 aceleradora.la
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo import Command, api, fields, models
+from odoo.exceptions import AccessError, UserError
 
 
 class HrExpenseSheet(models.Model):
@@ -57,6 +57,64 @@ class HrExpenseSheet(models.Model):
                 sheet.fund_conformity = "conformed"
             else:
                 sheet.fund_conformity = "pending"
+
+    def action_fund_batch_create(self):
+        """Crear una conformidad con los Anexos elegidos en la lista.
+
+        El período va de la primera a la última fecha de aprobación. La
+        conformidad queda en borrador para revisarla antes de enviarla.
+        """
+        if not self.env.user.has_group("hr_expense.group_hr_expense_manager"):
+            raise AccessError(
+                self.env._("Solo Administración puede armar conformidades.")
+            )
+        if not self:
+            raise UserError(self.env._("Elegí al menos un Anexo."))
+        not_approved = self.filtered(lambda sheet: sheet.approval_state != "approve")
+        if not_approved:
+            raise UserError(
+                self.env._(
+                    "Solo entran Anexos aprobados. No lo están: %s",
+                    ", ".join(not_approved.mapped("name")),
+                )
+            )
+        taken = self.filtered("fund_batch_line_ids")
+        if taken:
+            raise UserError(
+                self.env._(
+                    "Estos Anexos ya están en una conformidad:\n%s",
+                    "\n".join(
+                        f"- {sheet.name}: {sheet.fund_batch_id.name}" for sheet in taken
+                    ),
+                )
+            )
+        if len(self.company_id) > 1:
+            raise UserError(
+                self.env._("Los Anexos de una conformidad tienen que ser de una compañía.")
+            )
+        dates = [fields.Date.to_date(sheet.approval_date) for sheet in self]
+        batch = (
+            self.env["fund.expense.batch"]
+            .with_company(self.company_id)
+            .create(
+                {
+                    "company_id": self.company_id.id,
+                    "date_from": min(dates),
+                    "date_to": max(dates),
+                    "line_ids": [
+                        Command.create({"sheet_id": sheet.id})
+                        for sheet in self.sorted("approval_date")
+                    ],
+                }
+            )
+        )
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "fund.expense.batch",
+            "res_id": batch.id,
+            "view_mode": "form",
+            "views": [(False, "form")],
+        }
 
     def _fund_batch_release(self):
         """Antes de volver a borrador o rechazar un Anexo aprobado.

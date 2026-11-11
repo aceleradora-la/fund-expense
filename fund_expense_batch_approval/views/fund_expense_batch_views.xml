@@ -31,6 +31,7 @@
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
                     <field name="can_review" invisible="1"/>
+                    <field name="selected_sheet_ids" invisible="1"/>
                     <group>
                         <group>
                             <label for="date_from" string="Período"/>
@@ -52,7 +53,7 @@
                             <field name="line_ids">
                                 <list editable="bottom" decoration-warning="observed">
                                     <field name="sheet_id"
-                                           domain="[('company_id', '=', parent.company_id), ('approval_state', '=', 'approve'), ('fund_batch_line_ids', '=', False)]"
+                                           domain="[('company_id', '=', parent.company_id), ('approval_state', '=', 'approve'), ('fund_batch_line_ids', '=', False), ('id', 'not in', parent.selected_sheet_ids)]"
                                            options="{'no_create': True}"/>
                                     <field name="employee_id"/>
                                     <field name="department_id"/>

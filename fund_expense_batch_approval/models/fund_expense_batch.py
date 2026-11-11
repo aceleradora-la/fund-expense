@@ -88,6 +88,12 @@ class FundExpenseBatch(models.Model):
     summary_html = fields.Html(
         string="Totales", compute="_compute_summary_html", sanitize=False
     )
+    selected_sheet_ids = fields.Many2many(
+        comodel_name="hr.expense.sheet",
+        compute="_compute_selected_sheet_ids",
+        help="Anexos ya cargados, también los que todavía no se guardaron: el "
+        "selector de Anexos no los vuelve a ofrecer.",
+    )
 
     _sql_constraints = [
         (
@@ -96,6 +102,11 @@ class FundExpenseBatch(models.Model):
             "La fecha Desde no puede ser posterior a la fecha Hasta.",
         ),
     ]
+
+    @api.depends("line_ids.sheet_id")
+    def _compute_selected_sheet_ids(self):
+        for batch in self:
+            batch.selected_sheet_ids = batch.line_ids.sheet_id
 
     @api.depends("line_ids.total_amount", "line_ids.observed")
     def _compute_totals(self):
