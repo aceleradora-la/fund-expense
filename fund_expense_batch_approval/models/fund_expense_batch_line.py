@@ -55,6 +55,15 @@ class FundExpenseBatchLine(models.Model):
     observed_date = fields.Datetime(
         string="Fecha de observación", readonly=True, copy=False
     )
+    observation_activity_id = fields.Many2one(
+        comodel_name="mail.activity",
+        string="Actividad de la observación",
+        readonly=True,
+        copy=False,
+        ondelete="set null",
+        help="La que se le dejó a Administración en el Anexo: se actualiza si se "
+        "vuelve a observar y se cancela si se quita la observación.",
+    )
 
     _sql_constraints = [
         (
@@ -210,17 +219,35 @@ class FundExpenseBatchLine(models.Model):
                 subtype_xmlid="mail.mt_note",
             )
             responsible = line.batch_id.user_id
-            if responsible:
-                sheet.activity_schedule(
+            activity = line._fund_batch_open_activity()
+            if activity:
+                # Se vuelve a observar: la misma actividad, con el texto nuevo.
+                activity.write({"note": observation})
+            elif responsible:
+                line.observation_activity_id = sheet.activity_schedule(
                     "mail.mail_activity_data_todo",
                     user_id=responsible.id,
                     summary=self.env._("Observación de %s", line.batch_id.name),
                     note=observation,
                 )
 
+    def _fund_batch_open_activity(self):
+        """La actividad de la observación, si sigue pendiente.
+
+        Una actividad hecha se borra (o se archiva, según su tipo): en ese
+        caso no se toca.
+        """
+        self.ensure_one()
+        activity = self.observation_activity_id.exists()
+        if "active" in activity._fields:
+            activity = activity.filtered("active")
+        return activity
+
     def action_clear_observation(self):
         self._fund_batch_check_can_observe()
         for line in self.sudo().filtered("observed"):
+            # La actividad pendiente ya no corresponde.
+            line._fund_batch_open_activity().unlink()
             line.write(
                 {
                     "observed": False,

@@ -107,7 +107,7 @@
                             <t t-set="title">2. RESPONSABLE ÁREA</t>
                             <t t-set="name" t-value="area_review.done_by.name"/>
                             <t t-set="date" t-value="area_review.reviewed_date"/>
-                            <t t-set="note" t-value="not o.department_manager_user_id and 'No aplica: solicita el responsable del área'"/>
+                            <t t-set="note" t-value="not area_review and o._fund_expense_area_note()"/>
                         </t>
                         <t t-call="fund_expense_report.fund_expense_anexo_signature">
                             <t t-set="title">3. GERENCIA ADM. Y FIN.</t>

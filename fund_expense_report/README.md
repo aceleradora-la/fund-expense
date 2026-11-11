@@ -7,7 +7,9 @@ aprobación por niveles (`hr_expense_tier_validation`) y anticipos
 ## Qué agrega
 
 - **Responsable del área** en la hoja de gastos (`department_manager_user_id`): el usuario del
-  responsable del departamento del empleado. Queda vacío si quien pide es el propio responsable.
+  responsable del departamento del empleado. Queda vacío, y firma solo Gerencia AyF, si quien
+  pide es el propio responsable o si el responsable es de *Gerencia de Administración y
+  Finanzas* (así firma una sola vez).
 - **Al enviar** una hoja:
   - controla que cada comprobante (salvo el renglón de anticipo) tenga **proveedor con CUIT**;
   - **pide las aprobaciones solo**, sin el paso manual de "Solicitar validación".

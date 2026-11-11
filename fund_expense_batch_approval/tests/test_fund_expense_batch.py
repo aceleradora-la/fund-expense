@@ -337,9 +337,28 @@ class TestFundExpenseBatch(TransactionCase):
         sheet = self._sheet()
         batch = self._sent_batch([sheet])
         self._observe(batch.line_ids, self.director_user)
+        activity = batch.line_ids.observation_activity_id
+        self.assertTrue(activity)
         batch.line_ids.with_user(self.director_user).action_clear_observation()
         self.assertFalse(batch.line_ids.observed)
         self.assertEqual(sheet.fund_conformity, "pending")
+        # La actividad de Administración se cancela.
+        self.assertFalse(activity.exists())
+        self.assertFalse(
+            sheet.activity_ids.filtered(lambda act: act.user_id == self.afm_user)
+        )
+
+    def test_observe_twice_updates_activity(self):
+        sheet = self._sheet()
+        batch = self._sent_batch([sheet])
+        self._observe(batch.line_ids, self.director_user, text="Primera")
+        self._observe(batch.line_ids, self.director_user, text="Segunda")
+        activities = sheet.activity_ids.filtered(
+            lambda act: act.user_id == self.afm_user
+        )
+        self.assertEqual(len(activities), 1)
+        self.assertIn("Segunda", str(activities.note))
+        self.assertEqual(batch.line_ids.observation, "Segunda")
 
     def test_only_reviewer_observes(self):
         batch = self._sent_batch([self._sheet()])

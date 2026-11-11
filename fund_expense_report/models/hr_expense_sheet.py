@@ -57,15 +57,47 @@ class HrExpenseSheet(models.Model):
         compute_sudo=True,
     )
 
-    @api.depends("employee_id.department_id.manager_id.user_id")
+    @api.depends(
+        "employee_id.department_id.manager_id.user_id",
+        "employee_id.department_id.manager_id.user_id.groups_id",
+    )
     def _compute_department_manager_user_id(self):
         for sheet in self:
-            employee = sheet.employee_id
-            manager = employee.department_id.manager_id
-            if manager and manager != employee:
-                sheet.department_manager_user_id = manager.user_id
-            else:
-                sheet.department_manager_user_id = False
+            sheet.department_manager_user_id = (
+                False
+                if sheet._fund_expense_area_skip_reason()
+                else sheet.employee_id.department_id.manager_id.user_id
+            )
+
+    def _fund_expense_area_skip_reason(self):
+        """Por qué no firma el responsable del área (nivel 1), o False.
+
+        - Pide el propio responsable: firma solo Gerencia AyF.
+        - El responsable es de Gerencia AyF: firma una sola vez, por AyF.
+        - El área no tiene responsable con usuario.
+        """
+        self.ensure_one()
+        employee = self.employee_id
+        manager = employee.department_id.manager_id
+        if not manager or manager == employee:
+            return "own"
+        if not manager.user_id:
+            return "no_user"
+        if manager.user_id.has_group(AFM_GROUP):
+            return "afm"
+        return False
+
+    def _fund_expense_area_note(self):
+        """Leyenda de la firma 2 del Anexo I cuando ese nivel no aplica."""
+        self.ensure_one()
+        reason = self._fund_expense_area_skip_reason()
+        return {
+            "own": self.env._("No aplica: solicita el responsable del área"),
+            "afm": self.env._(
+                "No aplica: el responsable del área firma por Gerencia de Adm. y Fin."
+            ),
+            "no_user": self.env._("No aplica: el área no tiene responsable con usuario"),
+        }.get(reason, False)
 
     @api.depends("fund_journal_id.type")
     def _compute_fund_source(self):

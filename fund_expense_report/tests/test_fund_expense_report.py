@@ -261,6 +261,25 @@ class TestFundExpenseReport(TransactionCase):
             sheet.review_ids.mapped("definition_id.fund_expense_signature"), ["afm"]
         )
 
+    def test_area_manager_in_afm_signs_once(self):
+        # El responsable del área también es Gerencia AyF: firma una sola vez.
+        self.manager_user.groups_id = [Command.link(self.afm_group.id)]
+        sheet = self._sheet()
+        self.assertFalse(sheet.department_manager_user_id)
+        self._submit(sheet)
+        self.assertEqual(
+            sheet.review_ids.mapped("definition_id.fund_expense_signature"), ["afm"]
+        )
+        sheet.with_user(self.manager_user).validate_tier()
+        self.assertEqual(sheet.approval_state, "approve")
+        self.assertEqual(
+            sheet._fund_expense_area_note(),
+            "No aplica: el responsable del área firma por Gerencia de Adm. y Fin.",
+        )
+        # Si deja de ser de Gerencia AyF, vuelve a firmar como responsable.
+        self.manager_user.groups_id = [Command.unlink(self.afm_group.id)]
+        self.assertEqual(self._sheet().department_manager_user_id, self.manager_user)
+
     def test_full_approval_creates_moves(self):
         sheet = self._sheet()
         self._submit(sheet)
