@@ -6,6 +6,19 @@ aprobación por niveles (`hr_expense_tier_validation`) y anticipos
 
 ## Qué agrega
 
+- **El Anexo I es el reporte de gastos.** Se arma de dos maneras:
+  - Administración crea el reporte y le agrega los renglones.
+  - Se suben **gastos sueltos** (*Mis gastos*, la app del celular o *Subir* con la foto del
+    ticket), los sube Administración o cada empleado, y después se tildan y se usa **Crear
+    reporte**. Un reporte es de un solo empleado; si se mezclan *Empresa* y *Empleado*, el
+    núcleo arma dos y el concepto lo aclara (*- Paga la empresa* / *- Reintegro*).
+  - **Viaje o evento** (`fund_event`) en cada gasto, para agruparlos. *Crear reporte* propone
+    como concepto el viaje o evento si es el mismo en todos, o *Gastos de <mes>* si son de un
+    mismo mes.
+  - **Gastos por reportar** (*Reportes de gastos*, solo para *Gastos / Todos los aprobadores*):
+    los gastos sueltos de todos los empleados, agrupados por empleado. *Reportes de gastos*
+    pasa a ser un desplegable con *Todos los reportes* primero.
+  - No usa la lectura automática de tickets (OCR con créditos de Odoo).
 - **Responsable del área** en la hoja de gastos (`department_manager_user_id`): el usuario del
   responsable del departamento del empleado. Queda vacío, y firma solo Gerencia AyF, si quien
   pide es el propio responsable o si el responsable es de *Gerencia de Administración y
@@ -22,7 +35,10 @@ aprobación por niveles (`hr_expense_tier_validation`) y anticipos
 - **Al rechazar un nivel** se pide siempre el motivo y la hoja pasa a **Rechazado**, con el motivo
   en el historial. Se conservan las firmas hechas, las aprobaciones que faltaban quedan canceladas
   y el empleado la pasa a borrador para corregirla y reenviarla (ahí se piden las firmas de nuevo).
-- **Pagado por la empresa** es el caso por defecto. Al aprobarse el último nivel, en lugar de los
+- **Pagado por** se propone según quién carga: *Empresa* si es Administración (*Gastos / Todos
+  los aprobadores*), *Empleado* si es el propio empleado subiendo sus tickets. Un renglón nuevo
+  en un Anexo que ya tiene renglones toma el pagador del Anexo.
+- **Pagado por la empresa** (el caso normal). Al aprobarse el último nivel, en lugar de los
   pagos del núcleo se precarga **un borrador de factura por proveedor**, con renglones, cuentas,
   analítica y adjuntos, vinculado al Anexo:
   - Administración completa el comprobante, confirma (entra al Libro IVA) y paga por el circuito
@@ -35,7 +51,10 @@ aprobación por niveles (`hr_expense_tier_validation`) y anticipos
 - **Fondo de pago** (`fund_journal_id`): diario de banco (**fondo fijo**, transferencia), de
   efectivo (**caja chica**) o de **tarjeta de crédito**. Solo lo elige el grupo *Gerencia de
   Administración y Finanzas*, también durante la aprobación. Se propone al registrar el pago.
-- **Comprobante** en cada gasto: número, proveedor (siempre visible) y CUIT.
+- **Comprobante** en cada gasto: número, proveedor (siempre visible) y CUIT. El proveedor no se
+  da de alta rápida desde el gasto: *Crear y editar* abre el formulario, para cargar el CUIT.
+- **Español para los anticipos de OCA:** `hr_expense_advance_clearing` no trae traducción; la
+  carga este módulo desde `i18n_extra/es.po` (menús, campos y vistas).
 - **Aprobadores:** quien tiene que aprobar una rendición la ve y la aprueba aunque no tenga
   permisos de Gastos.
 - **PDF "Anexo I - Solicitud de fondos"** (*Imprimir* en la hoja), con las tres firmas tomadas

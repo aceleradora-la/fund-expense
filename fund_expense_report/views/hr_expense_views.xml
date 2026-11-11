@@ -5,10 +5,16 @@
         <field name="model">hr.expense</field>
         <field name="inherit_id" ref="hr_expense.hr_expense_view_form"/>
         <field name="arch" type="xml">
-            <!-- En las rendiciones el proveedor va siempre, no solo si paga la empresa. -->
+            <!-- En las rendiciones el proveedor va siempre, no solo si paga la empresa.
+                 Sin alta rápida: un proveedor nuevo se da de alta con su CUIT. -->
             <field name="vendor_id" position="attributes">
                 <attribute name="invisible">advance</attribute>
                 <attribute name="context">{'res_partner_search_mode': 'supplier'}</attribute>
+                <attribute name="options">{'no_quick_create': True}</attribute>
+            </field>
+            <field name="vendor_id" position="before">
+                <field name="fund_event" invisible="advance"
+                       placeholder="p. ej. Viaje a Córdoba, Congreso ..."/>
             </field>
             <!-- advance ya está en el formulario (hr_expense_advance_clearing). -->
             <field name="vendor_id" position="after">
@@ -17,4 +23,70 @@
             </field>
         </field>
     </record>
+
+    <record id="hr_expense_view_list_fund" model="ir.ui.view">
+        <field name="name">hr.expense.list.fund</field>
+        <field name="model">hr.expense</field>
+        <field name="inherit_id" ref="hr_expense.hr_expense_view_expenses_analysis_tree"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="fund_event" optional="show" readonly="not is_editable"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="hr_expense_view_search_fund" model="ir.ui.view">
+        <field name="name">hr.expense.search.fund</field>
+        <field name="model">hr.expense</field>
+        <field name="inherit_id" ref="hr_expense.hr_expense_view_search"/>
+        <field name="arch" type="xml">
+            <field name="employee_id" position="after">
+                <field name="fund_event"/>
+            </field>
+            <filter name="employee" position="after">
+                <filter string="Viaje o evento" name="fund_event"
+                        context="{'group_by': 'fund_event'}"/>
+            </filter>
+        </field>
+    </record>
+
+    <!-- Administración junta los gastos sueltos de todos (cargados por ella o por
+         cada empleado, también desde el celular) y arma los Anexos. -->
+    <record id="action_fund_expense_to_report" model="ir.actions.act_window">
+        <field name="name">Gastos por reportar</field>
+        <field name="res_model">hr.expense</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="hr_expense.hr_expense_view_search"/>
+        <field name="domain">[('sheet_id', '=', False), ('state', '=', 'draft')]</field>
+        <field name="context">{'search_default_employee': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No hay gastos sueltos por reportar</p>
+            <p>
+                Los gastos que se suben sueltos (desde Mis gastos o la app del celular)
+                aparecen acá hasta que se juntan en un Anexo: tildarlos y
+                <b>Crear reporte</b>. Un Anexo es de un solo empleado.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_fund_expense_to_report_list" model="ir.actions.act_window.view">
+        <field name="sequence">1</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="hr_expense.view_expenses_tree"/>
+        <field name="act_window_id" ref="action_fund_expense_to_report"/>
+    </record>
+
+    <!-- Con un submenú, «Reportes de gastos» pasa a ser un desplegable: se repone
+         el listado de reportes como primera opción. -->
+    <menuitem id="menu_fund_expense_sheet_all"
+              name="Todos los reportes"
+              parent="hr_expense.menu_hr_expense_report"
+              action="hr_expense.action_hr_expense_sheet_all"
+              sequence="1"/>
+    <menuitem id="menu_fund_expense_to_report"
+              name="Gastos por reportar"
+              parent="hr_expense.menu_hr_expense_report"
+              action="action_fund_expense_to_report"
+              groups="hr_expense.group_hr_expense_user"
+              sequence="2"/>
 </odoo>

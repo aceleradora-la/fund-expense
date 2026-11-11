@@ -370,13 +370,128 @@ class TestFundExpenseReport(TransactionCase):
             form.xpath("//field[@name='user_id']")[0].get("invisible"), "1"
         )
 
-    def test_paid_by_company_by_default(self):
+    def test_paid_by_depends_on_who_loads(self):
         Expense = self.env["hr.expense"]
-        self.assertEqual(Expense._default_payment_mode(), "company_account")
+        admin = new_test_user(
+            self.env,
+            login="fund_expense_admin",
+            groups="base.group_user,hr_expense.group_hr_expense_user",
+            company_id=self.company.id,
+            company_ids=[Command.set(self.company.ids)],
+        )
+        # Administración carga lo que paga la empresa.
+        self.assertEqual(
+            Expense.with_user(admin)._default_payment_mode(), "company_account"
+        )
+        # El empleado que sube sus tickets, lo que pagó él.
+        self.assertEqual(
+            Expense.with_user(self.employee_user)._default_payment_mode(),
+            "own_account",
+        )
+        # Renglón nuevo en un Anexo con renglones: el pagador del Anexo.
+        self.assertEqual(
+            Expense.with_user(self.employee_user)
+            .with_context(fund_sheet_payment_mode="company_account")
+            ._default_payment_mode(),
+            "company_account",
+        )
         # El anticipo es siempre al empleado (hr_expense_advance_clearing).
         self.assertEqual(
-            Expense.with_context(default_advance=True)._default_payment_mode(),
+            Expense.with_user(admin)
+            .with_context(default_advance=True)
+            ._default_payment_mode(),
             "own_account",
+        )
+
+    def _loose_expenses(self, *specs):
+        """Gastos sueltos (sin Anexo): (descripción, pagador, viaje o evento)."""
+        Expense = self.env["hr.expense"]
+        expenses = Expense
+        for amount, (name, payment_mode, event) in enumerate(specs, start=1):
+            vals = self._line_vals(self.expense_employee, self.vendor, payment_mode)
+            # Importes distintos: el núcleo marca como duplicados los iguales.
+            vals.update(
+                name=name, fund_event=event, total_amount_currency=100.0 * amount
+            )
+            expenses |= Expense.create(vals)
+        return expenses
+
+    def test_create_report_named_after_event(self):
+        expenses = self._loose_expenses(
+            ("Pasaje", "company_account", "Viaje a Córdoba"),
+            ("Hotel", "company_account", " Viaje a Córdoba "),
+            ("Taxi", "own_account", "Viaje a Córdoba"),
+        )
+        action = expenses.action_submit_expenses()
+        sheets = self.env["hr.expense.sheet"].search(action["domain"])
+        self.assertEqual(len(sheets), 2, "Mezcla de pagadores: dos Anexos")
+        self.assertEqual(
+            set(sheets.mapped("name")),
+            {"Viaje a Córdoba - Paga la empresa", "Viaje a Córdoba - Reintegro"},
+        )
+        company_sheet = sheets.filtered(
+            lambda sheet: sheet.payment_mode == "company_account"
+        )
+        self.assertEqual(len(company_sheet.expense_line_ids), 2)
+        self.assertEqual(
+            company_sheet.department_manager_user_id, self.manager_user
+        )
+
+    def test_create_report_named_after_month(self):
+        expenses = self._loose_expenses(
+            ("Librería", "company_account", False),
+            ("Remis", "company_account", "Viaje a Córdoba"),
+        )
+        action = expenses.action_submit_expenses()
+        sheet = self.env["hr.expense.sheet"].browse(action["res_id"])
+        self.assertTrue(sheet.name.startswith("Gastos de "), sheet.name)
+        # Un solo gasto: el núcleo usa su descripción.
+        single = self._loose_expenses(("Almuerzo", "own_account", False))
+        action = single.action_submit_expenses()
+        self.assertEqual(
+            self.env["hr.expense.sheet"].browse(action["res_id"]).name, "Almuerzo"
+        )
+
+    def test_expenses_to_report_menu(self):
+        action = self.env.ref("fund_expense_report.action_fund_expense_to_report")
+        self.assertEqual(action.res_model, "hr.expense")
+        self.assertIn("sheet_id", action.domain)
+        menu = self.env.ref("fund_expense_report.menu_fund_expense_to_report")
+        self.assertEqual(
+            menu.groups_id, self.env.ref("hr_expense.group_hr_expense_user")
+        )
+        # «Reportes de gastos» pasa a desplegable: el listado sigue primero.
+        all_reports = self.env.ref("fund_expense_report.menu_fund_expense_sheet_all")
+        self.assertEqual(all_reports.parent_id, menu.parent_id)
+        self.assertLess(all_reports.sequence, menu.sequence)
+
+    def test_expense_form_vendor_without_quick_create(self):
+        arch = self.env["hr.expense"].get_view(
+            self.env.ref("hr_expense.hr_expense_view_form").id
+        )["arch"]
+        form = etree.fromstring(arch)
+        vendor = form.xpath("//field[@name='vendor_id']")[0]
+        self.assertIn("no_quick_create", vendor.get("options"))
+        self.assertTrue(form.xpath("//field[@name='fund_event']"))
+
+    def test_advance_clearing_in_spanish(self):
+        lang = "es_AR"
+        self.env["res.lang"]._activate_lang(lang)
+        self.env["ir.module.module"]._load_module_terms(
+            ["fund_expense_report"], [lang], overwrite=True
+        )
+        self.env.invalidate_all()
+        self.env.registry.clear_cache()
+        menu = self.env.ref("hr_expense_advance_clearing.menu_my_hr_advance_sheet")
+        self.assertEqual(menu.with_context(lang=lang).name, "Anticipos")
+        fields_info = (
+            self.env["hr.expense.sheet"]
+            .with_context(lang=lang)
+            .fields_get(["clearing_residual", "advance_sheet_id"], ["string"])
+        )
+        self.assertEqual(fields_info["clearing_residual"]["string"], "Saldo a rendir")
+        self.assertEqual(
+            fields_info["advance_sheet_id"]["string"], "Anticipo a rendir"
         )
 
     def test_company_sheet_precharges_one_bill_per_vendor(self):

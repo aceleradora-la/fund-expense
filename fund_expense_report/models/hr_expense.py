@@ -4,17 +4,35 @@
 from odoo import Command, api, fields, models
 
 
+# Gastos / Todos los aprobadores (lo tiene Administración): carga lo que paga
+# la empresa.
+FUND_ADMIN_GROUP = "hr_expense.group_hr_expense_user"
+
+
 class HrExpense(models.Model):
     _inherit = "hr.expense"
 
     def _default_payment_mode(self):
-        # Casi siempre paga la empresa. El anticipo, en cambio, es siempre al
-        # empleado (lo exige hr_expense_advance_clearing).
+        # El anticipo es siempre al empleado (lo exige hr_expense_advance_clearing).
         if self.env.context.get("default_advance"):
             return "own_account"
-        return "company_account"
+        # Renglón nuevo en un Anexo que ya tiene renglones: el mismo pagador
+        # (el núcleo no deja mezclar).
+        sheet_payment_mode = self.env.context.get("fund_sheet_payment_mode")
+        if sheet_payment_mode:
+            return sheet_payment_mode
+        # Administración carga lo que paga la empresa; el empleado que sube sus
+        # tickets (también desde el celular), lo que pagó él.
+        if self.env.user.has_group(FUND_ADMIN_GROUP):
+            return "company_account"
+        return "own_account"
 
     payment_mode = fields.Selection(default=_default_payment_mode)
+    fund_event = fields.Char(
+        string="Viaje o evento",
+        help="Para juntar en un mismo Anexo los gastos de un viaje o un evento. "
+        "Si todos los gastos de un reporte tienen el mismo, es su concepto.",
+    )
     receipt_number = fields.Char(
         string="N° de comprobante",
         copy=False,
@@ -43,6 +61,22 @@ class HrExpense(models.Model):
         if self.advance:
             self.payment_mode = "own_account"
         return res
+
+    def _get_default_expense_sheet_values(self):
+        # Si los gastos elegidos mezclan pagadores, el núcleo arma dos Anexos:
+        # se los distingue en el concepto.
+        values = super()._get_default_expense_sheet_values()
+        if len(values) > 1:
+            labels = {
+                "company_account": self.env._("Paga la empresa"),
+                "own_account": self.env._("Reintegro"),
+            }
+            for vals in values:
+                expense_ids = vals["expense_line_ids"][0][2]
+                payment_mode = self.browse(expense_ids[:1]).payment_mode
+                if vals.get("name") and payment_mode in labels:
+                    vals["name"] = f"{vals['name']} - {labels[payment_mode]}"
+        return values
 
     def _fund_expense_prepare_bill_line_vals(self):
         """Renglón de la factura del proveedor.

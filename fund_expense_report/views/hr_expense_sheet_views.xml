@@ -45,7 +45,9 @@
                 <field name="fund_source" invisible="not fund_source"/>
             </field>
             <field name="expense_line_ids" position="attributes">
-                <!-- Mismo contexto que hr_expense_advance_clearing, con el pagador por defecto. -->
+                <!-- Mismo contexto que hr_expense_advance_clearing. El pagador del
+                     renglón nuevo lo decide hr.expense._default_payment_mode: el
+                     del Anexo si ya tiene renglones, o según quién carga. -->
                 <attribute name="context">{
                     'default_advance': advance,
                     'search_default_is_advance': advance,
@@ -53,10 +55,11 @@
                     'form_view_ref' : 'hr_expense.hr_expense_view_form_without_header',
                     'default_company_id': company_id,
                     'default_employee_id': employee_id,
-                    'default_payment_mode': payment_mode or ('own_account' if advance else 'company_account'),
+                    'fund_sheet_payment_mode': payment_mode,
                 }</attribute>
             </field>
             <xpath expr="//field[@name='expense_line_ids']/list/field[@name='name']" position="after">
+                <field name="fund_event" optional="show"/>
                 <field name="receipt_number" optional="show"/>
                 <field name="vendor_id" optional="show"/>
                 <field name="vendor_vat" optional="hide"/>

@@ -1,0 +1,264 @@
+# Traducción al español de hr_expense_advance_clearing (OCA/hr-expense 18.0),
+# que no trae español. Se carga con fund_expense_report (i18n_extra) y se aplica
+# a los registros de ese módulo por su id externo. Solo términos de datos (menús,
+# acciones, campos y vistas): los mensajes de código los carga cada módulo de
+# sus propios archivos.
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Language: es\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_employee__advance_count
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_employee_base__advance_count
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_employee_public__advance_count
+msgid "# of Advance"
+msgstr "Cantidad de anticipos"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_account_payment__advance_id
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.hr_employee_public_view_form
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.hr_expense_sheet_view_search
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.hr_expense_view_search
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.view_employee_form
+msgid "Advance"
+msgstr "Anticipo"
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.hr_expense_sheet_view_search
+msgid "Advance (not cleared)"
+msgstr "Anticipo (sin rendir)"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.actions.act_window,name:hr_expense_advance_clearing.action_hr_expense_sheet_advance_clearing
+msgid "Advance Clearing"
+msgstr "Rendición de anticipos"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense_sheet__advance_sheet_residual
+msgid "Advance Remaining"
+msgstr "Anticipo pendiente"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_employee__advance_sheet_ids
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_employee_base__advance_sheet_ids
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_employee_public__advance_sheet_ids
+msgid "Advance Sheet"
+msgstr "Anticipos"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.actions.act_window,name:hr_expense_advance_clearing.action_my_hr_advance_sheet
+#: model:ir.ui.menu,name:hr_expense_advance_clearing.menu_my_hr_advance_sheet
+msgid "Advances"
+msgstr "Anticipos"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense_sheet__clearing_residual
+msgid "Amount to clear"
+msgstr "Saldo a rendir"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_expense_sheet__clearing_residual
+msgid "Amount to clear of this expense sheet in company currency"
+msgstr "Saldo a rendir de este reporte, en la moneda de la compañía"
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.view_hr_expense_sheet_form
+msgid "Clear Advance"
+msgstr "Rendir anticipo"
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.hr_expense_sheet_view_search
+msgid "Clearing"
+msgstr "Rendición"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense_sheet__clearing_count
+msgid "Clearing Count"
+msgstr "Cantidad de rendiciones"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense_sheet__clearing_journal_id
+msgid "Clearing Journal"
+msgstr "Diario de compensación"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense__clearing_product_id
+msgid "Clearing Product"
+msgstr "Producto de rendición"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense_sheet__clearing_sheet_ids
+msgid "Clearing Sheet"
+msgstr "Rendiciones"
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.view_hr_expense_sheet_form
+msgid "Clearings"
+msgstr "Rendiciones"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_employee__advance_count
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_employee_base__advance_count
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_employee_public__advance_count
+msgid "Count advance sheet in expense report"
+msgstr "Cantidad de anticipos en los reportes de gastos"
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.actions.act_window,help:hr_expense_advance_clearing.action_hr_expense_sheet_advance_clearing
+msgid "Create a new expense report"
+msgstr "Crear un reporte de gastos"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_res_company__clearing_journal_id
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_res_config_settings__clearing_journal_id
+msgid "Default Clearing Journal"
+msgstr "Diario de compensación de anticipos"
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.res_config_settings_view_form
+msgid ""
+"Default Miscellaneous journal used to post the advance clearing journal "
+"entry."
+msgstr "Diario misceláneo para el asiento de compensación de anticipos."
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_res_company__clearing_journal_id
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_res_config_settings__clearing_journal_id
+msgid ""
+"Default Miscellaneous journal used when posting the advance clearing journal"
+" entry."
+msgstr ""
+"Diario misceláneo que se usa al registrar el asiento de compensación de "
+"anticipos."
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense__advance
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense_sheet__advance
+#: model:product.template,name:hr_expense_advance_clearing.product_emp_advance_product_template
+msgid "Employee Advance"
+msgstr "Anticipo a empleado"
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.hr_expense_view_search
+msgid "Expense"
+msgstr "Gasto"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_expense__av_line_id
+msgid "Expense created from this advance expense line"
+msgstr "Gasto creado a partir de este renglón de anticipo"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.actions.act_window,name:hr_expense_advance_clearing.action_my_hr_expense_sheet
+#: model:ir.ui.menu,name:hr_expense_advance_clearing.menu_my_hr_expense_sheet
+msgid "Expenses"
+msgstr "Gastos"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_expense_sheet__amount_payable
+msgid "Final regiter payment amount even after advance clearing"
+msgstr "Importe a pagar después de rendir el anticipo"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_expense_sheet__clearing_journal_id
+msgid "Miscellaneous journal used to post the clearing journal entry."
+msgstr "Diario misceláneo para el asiento de compensación."
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.actions.act_window,help:hr_expense_advance_clearing.action_my_hr_advance_sheet
+msgid "No advance report found. Let's create one!"
+msgstr "Todavía no hay anticipos."
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.actions.act_window,help:hr_expense_advance_clearing.action_my_hr_expense_sheet
+msgid "No expense report found. Let's create one!"
+msgstr "Todavía no hay reportes de gastos."
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.actions.act_window,help:hr_expense_advance_clearing.action_my_hr_advance_sheet
+msgid ""
+"Once you have created your advance, submit it to your manager who will "
+"validate it."
+msgstr "Una vez cargado el anticipo, se envía a aprobar."
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.actions.act_window,help:hr_expense_advance_clearing.action_hr_expense_sheet_advance_clearing
+msgid ""
+"Once you have created your expense, submit it to your manager who will\n"
+"                validate it."
+msgstr "Una vez cargado el gasto, se envía a aprobar."
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.actions.act_window,help:hr_expense_advance_clearing.action_my_hr_expense_sheet
+msgid ""
+"Once you have created your expense, submit it to your manager who will "
+"validate it."
+msgstr "Una vez cargado el gasto, se envía a aprobar."
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.hr_expense_view_form
+msgid "Optional clearing product is used during clear advance"
+msgstr "Producto opcional que se usa al rendir el anticipo"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_expense__clearing_product_id
+msgid ""
+"Optional: On the clear advance, the clearing product will create default "
+"product line."
+msgstr "Opcional: al rendir el anticipo, se agrega un renglón con este producto."
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense_sheet__amount_payable
+msgid "Payable Amount"
+msgstr "Importe a pagar"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense_sheet__payment_return_ids
+msgid "Payment Return"
+msgstr "Devoluciones"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense__av_line_id
+msgid "Ref: Advance"
+msgstr "Ref.: anticipo"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_expense_sheet__advance_sheet_residual
+msgid "Remaining amount to clear the selected advance sheet"
+msgstr "Saldo pendiente de rendir del anticipo elegido"
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.view_hr_expense_sheet_form
+msgid "Return"
+msgstr "Devolución"
+
+#. module: hr_expense_advance_clearing
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.view_account_payment_search
+#: model_terms:ir.ui.view,arch_db:hr_expense_advance_clearing.view_hr_expense_sheet_form
+msgid "Return Advance"
+msgstr "Devolver anticipo"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,field_description:hr_expense_advance_clearing.field_hr_expense_sheet__return_count
+msgid "Return Count"
+msgstr "Cantidad de devoluciones"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_expense_sheet__clearing_sheet_ids
+msgid "Show reference clearing on advance"
+msgstr "Rendiciones de este anticipo"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_expense_sheet__payment_return_ids
+msgid "Show reference return advance on advance"
+msgstr "Devoluciones de este anticipo"
+
+#. module: hr_expense_advance_clearing
+#: model:ir.model.fields,help:hr_expense_advance_clearing.field_hr_expense_sheet__advance_sheet_id
+msgid "Show remaining advance of this employee"
+msgstr "Anticipos pendientes de este empleado"

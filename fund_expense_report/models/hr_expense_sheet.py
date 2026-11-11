@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError
-from odoo.tools.misc import clean_context
+from odoo.tools.misc import clean_context, format_date
 
 from .account_journal import FUND_SOURCES
 
@@ -15,6 +15,8 @@ AFM_GROUP = "fund_expense_report.group_fund_expense_afm"
 class HrExpenseSheet(models.Model):
     _inherit = "hr.expense.sheet"
 
+    # hr_expense_advance_clearing la llama "Clear Advance", igual que el botón.
+    advance_sheet_id = fields.Many2one(string="Anticipo a rendir")
     department_manager_user_id = fields.Many2one(
         comodel_name="res.users",
         string="Responsable del área",
@@ -57,6 +59,25 @@ class HrExpenseSheet(models.Model):
         compute="_compute_fund_bill_count",
         compute_sudo=True,
     )
+
+    def _get_default_sheet_name(self, expenses_to_report):
+        """Concepto del Anexo armado con *Crear reporte*: el viaje o evento si
+        todos los gastos tienen el mismo, o «Gastos de <mes>» si son de un mismo
+        mes."""
+        events = expenses_to_report.mapped(
+            lambda expense: (expense.fund_event or "").strip()
+        )
+        if all(events) and len(set(events)) == 1:
+            return events[0]
+        dates = expenses_to_report.mapped("date")
+        if (
+            len(expenses_to_report) > 1
+            and all(dates)
+            and len({(date.year, date.month) for date in dates}) == 1
+        ):
+            month = format_date(self.env, dates[0], date_format="MMMM y")
+            return self.env._("Gastos de %(month)s", month=month)
+        return super()._get_default_sheet_name(expenses_to_report)
 
     @api.depends(
         "employee_id.department_id.manager_id.user_id",
