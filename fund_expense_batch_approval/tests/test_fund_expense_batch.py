@@ -512,7 +512,11 @@ class TestFundExpenseBatch(TransactionCase):
         # Documentos: el asiento del reintegro del Anexo.
         move = sheet.account_move_ids
         self.assertTrue(move)
-        self.assertIn(move.display_name, batch.line_ids.document_names)
+        documents = batch.line_ids.document_names
+        # En borrador: se distingue por proveedor (el empleado) e importe.
+        self.assertIn("en borrador", documents)
+        self.assertIn(move.partner_id.name, documents)
+        self.assertIn("501", documents)
         self.assertIn("Documentos", html)
 
     def test_documents_include_payments(self):
@@ -532,4 +536,6 @@ class TestFundExpenseBatch(TransactionCase):
         line = self._batch([sheet]).line_ids
         payment = sheet.account_move_ids.reconciled_payment_ids
         self.assertTrue(payment)
-        self.assertIn(payment.display_name, line.document_names)
+        self.assertIn(f"Pago {payment.name}", line.document_names)
+        # Confirmado: la factura aparece con su número.
+        self.assertIn(sheet.account_move_ids.name, line.document_names)

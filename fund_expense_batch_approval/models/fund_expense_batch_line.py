@@ -5,6 +5,7 @@ from markupsafe import Markup
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.misc import format_amount
 
 
 class FundExpenseBatchLine(models.Model):
@@ -109,9 +110,44 @@ class FundExpenseBatchLine(models.Model):
     def _compute_document_names(self):
         for line in self:
             bills, payments = line._fund_batch_documents()
-            names = [bill.display_name for bill in bills.sorted("id")]
-            names += [payment.display_name for payment in payments.sorted("id")]
+            names = [line._fund_batch_bill_label(bill) for bill in bills.sorted("id")]
+            names += [
+                line._fund_batch_payment_label(payment)
+                for payment in payments.sorted("id")
+            ]
             line.document_names = "\n".join(names) or False
+
+    def _fund_batch_bill_label(self, bill):
+        """Número (o «en borrador»), proveedor e importe: con varias facturas
+        en borrador el nombre solo no alcanza para distinguirlas."""
+        if bill.state == "posted" and bill.name and bill.name != "/":
+            number = bill.name
+        elif bill.move_type in ("in_invoice", "in_refund"):
+            number = self.env._("Factura en borrador")
+        else:
+            number = self.env._("Asiento en borrador")
+        return " · ".join(
+            part
+            for part in (
+                number,
+                bill.partner_id.name,
+                format_amount(self.env, bill.amount_total, bill.currency_id),
+            )
+            if part
+        )
+
+    def _fund_batch_payment_label(self, payment):
+        number = (
+            payment.name
+            if payment.name and payment.name != "/"
+            else self.env._("Pago en borrador")
+        )
+        return " · ".join(
+            (
+                self.env._("Pago %s", number),
+                format_amount(self.env, payment.amount, payment.currency_id),
+            )
+        )
 
     # Armado: solo con la conformidad en borrador y sin pedir la aprobación
 
