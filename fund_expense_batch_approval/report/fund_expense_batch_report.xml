@@ -1,7 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- A4 apaisado con más margen arriba: el encabezado de la compañía ocupa
+         más que el margen estándar (desde la segunda hoja la grilla le pasaba
+         por encima) y la grilla tiene muchas columnas. -->
+    <record id="paperformat_fund_expense_batch" model="report.paperformat">
+        <field name="name">A4 apaisado - Conformidad (encabezado alto)</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">68</field>
+        <field name="margin_bottom">28</field>
+        <field name="margin_left">0</field>
+        <field name="margin_right">0</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">64</field>
+        <field name="dpi">90</field>
+        <field name="css_margins" eval="True"/>
+    </record>
+
     <record id="action_report_fund_expense_batch" model="ir.actions.report">
         <field name="name">Conformidad de rendiciones</field>
+        <field name="paperformat_id" ref="paperformat_fund_expense_batch"/>
         <field name="model">fund.expense.batch</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">fund_expense_batch_approval.report_fund_expense_batch</field>
