@@ -4,7 +4,7 @@
     "name": "Fundación - Conformidad de rendiciones",
     "summary": "Conformidad periódica del Gerente sobre los Anexos I aprobados, "
     "con observaciones por Anexo",
-    "version": "18.0.1.5.0",
+    "version": "18.0.1.6.0",
     "category": "Human Resources/Expenses",
     "website": "https://github.com/aceleradora-la/fund-expense",
     "author": "aceleradora.la",

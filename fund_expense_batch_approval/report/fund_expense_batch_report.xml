@@ -14,14 +14,41 @@
     <template id="report_fund_expense_batch_document">
         <t t-call="web.external_layout">
             <t t-set="totals" t-value="o._fund_batch_totals()"/>
-            <div class="page">
+            <div class="page fe-batch" style="font-size: 0.85rem;">
+                <!-- Grillas propias: el layout de la compañía redondea y oscurece
+                     las tablas de Bootstrap de forma despareja. -->
+                <style>
+                    .fe-batch table.fe-grid {
+                        width: 100%; margin-bottom: 14px;
+                        border-collapse: collapse !important;
+                        border: 1px solid #444 !important;
+                        border-radius: 0 !important;
+                        overflow: visible !important;
+                    }
+                    .fe-batch table.fe-grid th,
+                    .fe-batch table.fe-grid td {
+                        border: 1px solid #444 !important;
+                        border-radius: 0 !important;
+                        padding: 4px 6px;
+                        vertical-align: top;
+                        background: #fff !important;
+                        color: #000 !important;
+                    }
+                    .fe-batch table.fe-grid th {
+                        background: #ececec !important;
+                        font-weight: bold;
+                    }
+                    .fe-batch table.fe-grid tfoot td {
+                        background: #f5f5f5 !important;
+                    }
+                </style>
                 <h3>Conformidad de rendiciones <span t-field="o.name"/></h3>
                 <p>
                     Período: <span t-field="o.date_from"/> al <span t-field="o.date_to"/>
                     <t t-if="o.user_id"> · Responsable: <span t-field="o.user_id"/></t>
                 </p>
 
-                <table class="table table-sm o_main_table">
+                <table class="fe-grid">
                     <thead>
                         <tr>
                             <th>Anexo</th>
@@ -63,7 +90,7 @@
 
                 <div class="row mt-4">
                     <div class="col-6">
-                        <table class="table table-sm">
+                        <table class="fe-grid">
                             <thead><tr><th>Por área</th><th class="text-end">Importe</th></tr></thead>
                             <tbody>
                                 <tr t-foreach="totals['by_area']" t-as="row">
@@ -76,7 +103,7 @@
                         </table>
                     </div>
                     <div class="col-6">
-                        <table class="table table-sm">
+                        <table class="fe-grid">
                             <thead><tr><th>Por fondo</th><th class="text-end">Importe</th></tr></thead>
                             <tbody>
                                 <tr t-foreach="totals['by_source']" t-as="row">

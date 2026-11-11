@@ -33,10 +33,34 @@
     <template id="report_fund_expense_anexo_document">
         <t t-call="web.external_layout">
             <t t-set="o" t-value="o.with_context(lang=o.employee_id.work_contact_id.lang or o.env.lang)"/>
-            <div class="page" style="font-size: 0.9rem;">
+            <div class="page fe-anexo" style="font-size: 0.9rem;">
+                <!-- Grillas propias: el layout de la compañía redondea y oscurece
+                     las tablas de Bootstrap de forma despareja. -->
+                <style>
+                    .fe-anexo table.fe-grid {
+                        width: 100%; margin-bottom: 14px;
+                        border-collapse: collapse !important;
+                        border: 1px solid #444 !important;
+                        border-radius: 0 !important;
+                        overflow: visible !important;
+                    }
+                    .fe-anexo table.fe-grid th,
+                    .fe-anexo table.fe-grid td {
+                        border: 1px solid #444 !important;
+                        border-radius: 0 !important;
+                        padding: 4px 6px;
+                        vertical-align: top;
+                        background: #fff !important;
+                        color: #000 !important;
+                    }
+                    .fe-anexo table.fe-grid th {
+                        background: #ececec !important;
+                        font-weight: bold;
+                    }
+                </style>
                 <h4 class="text-center mb-3">ANEXO I: SOLICITUD DE FONDOS</h4>
 
-                <table class="table table-sm table-bordered mb-3">
+                <table class="fe-grid">
                     <tr>
                         <th style="width: 30%;">FECHA:</th>
                         <td><span t-field="o.create_date" t-options="{'widget': 'date'}"/></td>
@@ -65,7 +89,7 @@
                     </tr>
                 </table>
 
-                <table class="table table-sm table-bordered mb-3">
+                <table class="fe-grid">
                     <thead>
                         <tr>
                             <th>Fecha</th>
@@ -96,7 +120,7 @@
 
                 <t t-set="area_review" t-value="o._fund_expense_signature('area')"/>
                 <t t-set="afm_review" t-value="o._fund_expense_signature('afm')"/>
-                <table class="table table-sm table-bordered mb-3">
+                <table class="fe-grid">
                     <tr>
                         <t t-call="fund_expense_report.fund_expense_anexo_signature">
                             <t t-set="title">1. SOLICITANTE</t>
@@ -118,7 +142,7 @@
                     </tr>
                 </table>
 
-                <table class="table table-sm table-bordered">
+                <table class="fe-grid">
                     <tr>
                         <th colspan="3">FONDOS (Uso exclusivo Administración)</th>
                     </tr>
