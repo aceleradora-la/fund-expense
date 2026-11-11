@@ -60,6 +60,7 @@
                                     <field name="approval_day"/>
                                     <field name="fund_source" optional="show"/>
                                     <field name="sheet_state" optional="show" widget="badge"/>
+                                    <field name="document_names" optional="show"/>
                                     <field name="currency_id" column_invisible="1"/>
                                     <field name="total_amount" sum="Total"/>
                                     <field name="observed" widget="boolean_toggle" readonly="1" optional="show"/>

@@ -29,6 +29,7 @@
                             <th>Empleado</th>
                             <th>Área</th>
                             <th>Fondos</th>
+                            <th>Documentos</th>
                             <th class="text-end">Importe</th>
                             <th>Observación</th>
                         </tr>
@@ -40,6 +41,7 @@
                             <td><span t-field="line.employee_id"/></td>
                             <td><span t-field="line.department_id"/></td>
                             <td><span t-field="line.fund_source"/></td>
+                            <td class="small"><span t-field="line.document_names"/></td>
                             <td class="text-end">
                                 <span t-field="line.total_amount"
                                       t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
@@ -49,7 +51,7 @@
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="5"><strong>Total (<t t-out="len(o.line_ids)"/> Anexos)</strong></td>
+                            <td colspan="6"><strong>Total (<t t-out="len(o.line_ids)"/> Anexos)</strong></td>
                             <td class="text-end">
                                 <strong t-field="o.amount_total"
                                         t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>

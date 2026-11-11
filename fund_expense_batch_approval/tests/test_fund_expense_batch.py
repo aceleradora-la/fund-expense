@@ -509,3 +509,27 @@ class TestFundExpenseBatch(TransactionCase):
         self.assertIn(sheet.name, html)
         self.assertIn("El comprobante no corresponde", html)
         self.assertIn(self.department.name, html)
+        # Documentos: el asiento del reintegro del Anexo.
+        move = sheet.account_move_ids
+        self.assertTrue(move)
+        self.assertIn(move.display_name, batch.line_ids.document_names)
+        self.assertIn("Documentos", html)
+
+    def test_documents_include_payments(self):
+        sheet = self._sheet()
+        sheet.action_sheet_move_post()
+        payment_action = sheet.account_move_ids.action_register_payment()
+        try:
+            with self.env.cr.savepoint():
+                self.env["account.payment.register"].with_context(
+                    **payment_action["context"]
+                ).create({})._create_payments()
+        except Exception as error:  # noqa: BLE001
+            # Con localizaciones que piden datos extra para pagar (retenciones,
+            # talonarios) el asistente estándar no alcanza.
+            self.skipTest(f"No se pudo registrar el pago en esta base: {error}")
+        self.assertIn(sheet.payment_state, ("paid", "in_payment"))
+        line = self._batch([sheet]).line_ids
+        payment = sheet.account_move_ids.reconciled_payment_ids
+        self.assertTrue(payment)
+        self.assertIn(payment.display_name, line.document_names)

@@ -55,6 +55,14 @@ class FundExpenseBatchLine(models.Model):
     observed_date = fields.Datetime(
         string="Fecha de observación", readonly=True, copy=False
     )
+    document_names = fields.Text(
+        string="Documentos",
+        compute="_compute_document_names",
+        compute_sudo=True,
+        help="Facturas y pagos (órdenes de pago) del Anexo: las facturas del "
+        "proveedor si paga la empresa, o el asiento del reintegro si paga el "
+        "empleado, y los pagos conciliados con ellas.",
+    )
     observation_activity_id = fields.Many2one(
         comodel_name="mail.activity",
         string="Actividad de la observación",
@@ -80,6 +88,30 @@ class FundExpenseBatchLine(models.Model):
         # día anterior. Se toma el día tal como se guardó.
         for line in self:
             line.approval_day = fields.Date.to_date(line.sheet_id.approval_date)
+
+    def _fund_batch_documents(self):
+        """Facturas (o asiento del reintegro) y pagos del Anexo."""
+        self.ensure_one()
+        sheet = self.sheet_id
+        bills = sheet._fund_expense_active_bills() or sheet.account_move_ids
+        bills = bills.filtered(lambda move: move.state != "cancel")
+        payments = (bills.reconciled_payment_ids | bills.fund_expense_payment_ids).filtered(
+            lambda payment: payment.state not in ("canceled", "rejected")
+        )
+        return bills, payments
+
+    @api.depends(
+        "sheet_id.fund_bill_ids.state",
+        "sheet_id.fund_bill_ids.name",
+        "sheet_id.account_move_ids.state",
+        "sheet_id.payment_state",
+    )
+    def _compute_document_names(self):
+        for line in self:
+            bills, payments = line._fund_batch_documents()
+            names = [bill.display_name for bill in bills.sorted("id")]
+            names += [payment.display_name for payment in payments.sorted("id")]
+            line.document_names = "\n".join(names) or False
 
     # Armado: solo con la conformidad en borrador y sin pedir la aprobación
 
